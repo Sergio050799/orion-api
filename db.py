@@ -129,6 +129,16 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE INDEX IF NOT EXISTS idx_audit_ts      ON audit_log(ts DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_usuario ON audit_log(usuario);
 
+-- ── SESIÓN SILVERDAT COMPARTIDA ──────────────────────────────────────────────
+-- Una sola fila (id=1). Cookie compartida entre instancias PM2.
+CREATE TABLE IF NOT EXISTS silverdat_session (
+    id           INTEGER PRIMARY KEY CHECK (id = 1),
+    cookie       TEXT NOT NULL DEFAULT '',
+    dat_id       TEXT NOT NULL DEFAULT '',
+    logged_in_at TEXT NOT NULL DEFAULT (datetime('now')),
+    expires_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- ── MEJORAS ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS mejoras (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -328,6 +338,18 @@ def migrate_db():
         # ── historial_silverdat: corredor_nombre column ────────────────────────
         if _table_exists(conn, 'historial_silverdat') and not _column_exists(conn, 'historial_silverdat', 'corredor_nombre'):
             conn.execute("ALTER TABLE historial_silverdat ADD COLUMN corredor_nombre TEXT NOT NULL DEFAULT ''")
+
+        # ── silverdat_session (tabla compartida entre instancias PM2) ───────────
+        if not _table_exists(conn, 'silverdat_session'):
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS silverdat_session (
+                    id           INTEGER PRIMARY KEY CHECK (id = 1),
+                    cookie       TEXT NOT NULL DEFAULT '',
+                    dat_id       TEXT NOT NULL DEFAULT '',
+                    logged_in_at TEXT NOT NULL DEFAULT (datetime('now')),
+                    expires_at   TEXT NOT NULL DEFAULT (datetime('now'))
+                )
+            """)
 
         # ── primas_config: seed if empty ──────────────────────────────────────
         if _table_exists(conn, 'primas_config'):

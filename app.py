@@ -401,6 +401,50 @@ def post_silverdat_cache():
         conn.close()
 
 
+# ─── SILVERDAT SESSION (compartida entre instancias PM2) ─────────────────────
+
+@app.route('/silverdat-session', methods=['GET', 'POST'])
+@require_key
+def silverdat_session_endpoint():
+    conn = get_conn()
+    try:
+        if request.method == 'GET':
+            row = conn.execute("SELECT * FROM silverdat_session WHERE id=1").fetchone()
+            if not row:
+                return jsonify({'ok': False})
+            expires = datetime.fromisoformat(row['expires_at'])
+            if datetime.now(timezone.utc) > expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else datetime.now(timezone.utc) > expires:
+                conn.execute("DELETE FROM silverdat_session WHERE id=1")
+                conn.commit()
+                return jsonify({'ok': False})
+            return jsonify({
+                'ok': True,
+                'cookie': row['cookie'],
+                'dat_id': row['dat_id'],
+                'logged_in_at': row['logged_in_at'],
+                'expires_at': row['expires_at'],
+            })
+        else:
+            body = request.get_json(silent=True) or {}
+            if body.get('clear'):
+                conn.execute("DELETE FROM silverdat_session WHERE id=1")
+                conn.commit()
+                return jsonify({'ok': True})
+            cookie = body.get('cookie', '')
+            if not cookie:
+                return jsonify({'ok': False, 'error': 'cookie requerida'}), 400
+            conn.execute("""
+                INSERT OR REPLACE INTO silverdat_session (id, cookie, dat_id, logged_in_at, expires_at)
+                VALUES (1, ?, ?, ?, ?)
+            """, [cookie, body.get('dat_id', ''), body.get('logged_in_at', now_iso()), body.get('expires_at', now_iso())])
+            conn.commit()
+            return jsonify({'ok': True})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+
 @app.route('/silverdat-historial', methods=['GET'])
 @require_key
 def get_silverdat_historial():
