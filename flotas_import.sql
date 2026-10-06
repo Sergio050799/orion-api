@@ -346,7 +346,7 @@ WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('FLO
 
 -- FORESTAL SOLIVA (PIQUÉ)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
-SELECT lower(hex(randomblob(16))), 'FORESTAL SOLIVA', 'RECHAZADA', 'FORESTAL SOLIVA', '', 'PIQUÉ', '', datetime('now'), datetime('now')
+SELECT lower(hex(randomblob(16))), 'FORESTAL SOLIVA', 'RECHAZADA', 'FORESTAL SOLIVA', 'B17656133', 'PIQUÉ', '', datetime('now'), datetime('now')
 WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('FORESTAL SOLIVA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('FORESTAL SOLIVA'));
 
 -- FORZA HORMIGONES (MONTAGUT)
@@ -376,7 +376,7 @@ WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('GAR
 
 -- GLASS LOGISTIC VLC SL (sin corredor)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
-SELECT lower(hex(randomblob(16))), 'GLASS LOGISTIC VLC SL', 'RECHAZADA', 'GLASS LOGISTIC VLC SL', '', '', '', datetime('now'), datetime('now')
+SELECT lower(hex(randomblob(16))), 'GLASS LOGISTIC VLC SL', 'RECHAZADA', 'GLASS LOGISTIC VLC SL', 'B19939222', '', '', datetime('now'), datetime('now')
 WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('GLASS LOGISTIC VLC SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('GLASS LOGISTIC VLC SL'));
 
 -- GLOBAL SALCAI UTINSA (AON)
@@ -606,7 +606,7 @@ WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('PRE
 
 -- PRIMAVIA EUROPE SL (GESA)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
-SELECT lower(hex(randomblob(16))), 'PRIMAVIA EUROPE SL', 'RECHAZADA', 'PRIMAVIA EUROPE SL', '', 'GESA', '', datetime('now'), datetime('now')
+SELECT lower(hex(randomblob(16))), 'PRIMAVIA EUROPE SL', 'RECHAZADA', 'PRIMAVIA EUROPE SL', 'B05503594', 'GESA', '', datetime('now'), datetime('now')
 WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('PRIMAVIA EUROPE SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('PRIMAVIA EUROPE SL'));
 
 -- RECAMBIOS COLON CATARROJA (sin corredor)
@@ -1096,7 +1096,7 @@ WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('LA 
 
 -- Nuñez Movilla S.L (KIDEKA)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
-SELECT lower(hex(randomblob(16))), 'Nuñez Movilla S.L', 'EN ESTUDIO', 'Nuñez Movilla S.L', '', 'KIDEKA', '', datetime('now'), datetime('now')
+SELECT lower(hex(randomblob(16))), 'Nuñez Movilla S.L', 'EN ESTUDIO', 'Nuñez Movilla S.L', 'B09259839', 'KIDEKA', '', datetime('now'), datetime('now')
 WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('Nuñez Movilla S.L')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('Nuñez Movilla S.L'));
 
 -- RECUPERACIONES MORALES (PREMIUM)
@@ -1166,7 +1166,7 @@ WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('cal
 
 -- TRANSPORTES JABOSIO (sin corredor)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
-SELECT lower(hex(randomblob(16))), 'TRANSPORTES JABOSIO', 'EN ESTUDIO', 'TRANSPORTES JABOSIO', '', '', '', datetime('now'), datetime('now')
+SELECT lower(hex(randomblob(16))), 'TRANSPORTES JABOSIO', 'EN ESTUDIO', 'TRANSPORTES JABOSIO', 'B02239952', '', '', datetime('now'), datetime('now')
 WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTES JABOSIO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTES JABOSIO'));
 
 -- TRANSPORTES JACINTO DEL POZO (MOLYMA)
