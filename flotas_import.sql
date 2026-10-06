@@ -814,6 +814,386 @@ INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre
 SELECT lower(hex(randomblob(16))), 'VIRTO', 'RECHAZADA', 'VIRTO', '', 'AON', '', datetime('now'), datetime('now')
 WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('VIRTO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('VIRTO'));
 
+-- AGUSTIN TALÓN (SRAGONES)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'AGUSTIN TALÓN', 'COTIZADA', 'AGUSTIN TALÓN', '20442166L', 'SRAGONES', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('AGUSTIN TALÓN')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('AGUSTIN TALÓN'));
+
+-- ALQUILER O TRANSPORTES ALCOTRANS (PEDRO MARTÍNEZ DE QUEL)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'ALQUILER O TRANSPORTES ALCOTRANS', 'COTIZADA', 'ALQUILER O TRANSPORTES ALCOTRANS', '', 'PEDRO MARTÍNEZ DE QUEL', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('ALQUILER O TRANSPORTES ALCOTRANS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('ALQUILER O TRANSPORTES ALCOTRANS'));
+
+-- ANDREU TRUCKS SL (BROKERS 20 MEDITERRANEA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'ANDREU TRUCKS SL', 'COTIZADA', 'ANDREU TRUCKS SL', '', 'BROKERS 20 MEDITERRANEA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('ANDREU TRUCKS SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('ANDREU TRUCKS SL'));
+
+-- ANTA Y JESUS Sl (JAVIER)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'ANTA Y JESUS Sl', 'COTIZADA', 'ANTA Y JESUS Sl', 'B49145162', 'JAVIER', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('ANTA Y JESUS Sl')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('ANTA Y JESUS Sl'));
+
+-- ARIDOS BOFILL (ROIG)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'ARIDOS BOFILL', 'COTIZADA', 'ARIDOS BOFILL', '', 'ROIG', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('ARIDOS BOFILL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('ARIDOS BOFILL'));
+
+-- ARIDOS HNOS CURANTA (PALOL QUER)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'ARIDOS HNOS CURANTA', 'COTIZADA', 'ARIDOS HNOS CURANTA', '', 'PALOL QUER', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('ARIDOS HNOS CURANTA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('ARIDOS HNOS CURANTA'));
+
+-- ATALAYAS PORT, S (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'ATALAYAS PORT, S', 'COTIZADA', 'ATALAYAS PORT, S', 'B54768502', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('ATALAYAS PORT, S')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('ATALAYAS PORT, S'));
+
+-- CHICARRO TRANSPORTES SL (ERSM)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'CHICARRO TRANSPORTES SL', 'COTIZADA', 'CHICARRO TRANSPORTES SL', '', 'ERSM', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('CHICARRO TRANSPORTES SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('CHICARRO TRANSPORTES SL'));
+
+-- CITROGEST (MOCHOLI)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'CITROGEST', 'COTIZADA', 'CITROGEST', '', 'MOCHOLI', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('CITROGEST')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('CITROGEST'));
+
+-- COMERCIAL BI (BAT)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'COMERCIAL BI', 'COTIZADA', 'COMERCIAL BI', '', 'BAT', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('COMERCIAL BI')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('COMERCIAL BI'));
+
+-- CONGELATS SALMA (PIQUÉ)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'CONGELATS SALMA', 'COTIZADA', 'CONGELATS SALMA', '', 'PIQUÉ', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('CONGELATS SALMA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('CONGELATS SALMA'));
+
+-- CONSTRUCCIONES MATESANZ SANZ (PMQ (SORIA))
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'CONSTRUCCIONES MATESANZ SANZ', 'COTIZADA', 'CONSTRUCCIONES MATESANZ SANZ', '', 'PMQ (SORIA)', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('CONSTRUCCIONES MATESANZ SANZ')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('CONSTRUCCIONES MATESANZ SANZ'));
+
+-- El cafetero 0 (MOLIMA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'El cafetero 0', 'COTIZADA', 'El cafetero 0', '', 'MOLIMA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('El cafetero 0')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('El cafetero 0'));
+
+-- FELIX BUQUERIN SL (ROBERTO)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'FELIX BUQUERIN SL', 'COTIZADA', 'FELIX BUQUERIN SL', '', 'ROBERTO', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('FELIX BUQUERIN SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('FELIX BUQUERIN SL'));
+
+-- G.S.L (GESTION SERVICIOS LOGISTICOS SILLA SL)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'G.S.L', 'COTIZADA', 'G.S.L', '', 'GESTION SERVICIOS LOGISTICOS SILLA SL', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('G.S.L')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('G.S.L'));
+
+-- GOHERTRANS LOGISTICA SL (ARAGONES & CEMBORAIN)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'GOHERTRANS LOGISTICA SL', 'COTIZADA', 'GOHERTRANS LOGISTICA SL', '', 'ARAGONES & CEMBORAIN', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('GOHERTRANS LOGISTICA SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('GOHERTRANS LOGISTICA SL'));
+
+-- GRUPO LOGISTICA FOREVER (MOLYMA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'GRUPO LOGISTICA FOREVER', 'COTIZADA', 'GRUPO LOGISTICA FOREVER', '', 'MOLYMA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('GRUPO LOGISTICA FOREVER')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('GRUPO LOGISTICA FOREVER'));
+
+-- Hermanos Hernandez Matas SL (ARAGONES)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'Hermanos Hernandez Matas SL', 'COTIZADA', 'Hermanos Hernandez Matas SL', 'B16152175', 'ARAGONES', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('Hermanos Hernandez Matas SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('Hermanos Hernandez Matas SL'));
+
+-- LOALTRANS (ARAGONES)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'LOALTRANS', 'COTIZADA', 'LOALTRANS', 'B73503757', 'ARAGONES', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('LOALTRANS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('LOALTRANS'));
+
+-- MAGNA STELLA (PIQUE)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'MAGNA STELLA', 'COTIZADA', 'MAGNA STELLA', 'B66919531', 'PIQUE', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('MAGNA STELLA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('MAGNA STELLA'));
+
+-- O.T TRANSIT QUALITY, S.L (MOLYMA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'O.T TRANSIT QUALITY, S.L', 'COTIZADA', 'O.T TRANSIT QUALITY, S.L', '', 'MOLYMA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('O.T TRANSIT QUALITY, S.L')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('O.T TRANSIT QUALITY, S.L'));
+
+-- SARATEKUA (DELTA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'SARATEKUA', 'COTIZADA', 'SARATEKUA', '', 'DELTA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('SARATEKUA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('SARATEKUA'));
+
+-- SERJA (DELTA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'SERJA', 'COTIZADA', 'SERJA', 'B31674096', 'DELTA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('SERJA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('SERJA'));
+
+-- SETOAN LOGISTICA Y TTE. INTERNACIONAL (ROBERTO)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'SETOAN LOGISTICA Y TTE. INTERNACIONAL', 'COTIZADA', 'SETOAN LOGISTICA Y TTE. INTERNACIONAL', '', 'ROBERTO', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('SETOAN LOGISTICA Y TTE. INTERNACIONAL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('SETOAN LOGISTICA Y TTE. INTERNACIONAL'));
+
+-- TOY CENTRE-VEHICULOS INDUSTRIALES- ENRIC (TOY CENTRE - ENRIC - FECHAS VARIAS)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TOY CENTRE-VEHICULOS INDUSTRIALES- ENRIC', 'COTIZADA', 'TOY CENTRE-VEHICULOS INDUSTRIALES- ENRIC', '', 'TOY CENTRE - ENRIC - FECHAS VARIAS', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TOY CENTRE-VEHICULOS INDUSTRIALES- ENRIC')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TOY CENTRE-VEHICULOS INDUSTRIALES- ENRIC'));
+
+-- TOYS CENTRE - PIQUE - ENRIC (TOY CENTRE - ENRIC - FECHAS VARIAS)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TOYS CENTRE - PIQUE - ENRIC', 'COTIZADA', 'TOYS CENTRE - PIQUE - ENRIC', '', 'TOY CENTRE - ENRIC - FECHAS VARIAS', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TOYS CENTRE - PIQUE - ENRIC')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TOYS CENTRE - PIQUE - ENRIC'));
+
+-- TRANSELEZ (JAVIER)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANSELEZ', 'COTIZADA', 'TRANSELEZ', 'B45867751', 'JAVIER', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSELEZ')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSELEZ'));
+
+-- TRANSMONTENEGRO (LARREA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANSMONTENEGRO', 'COTIZADA', 'TRANSMONTENEGRO', 'B13243472', 'LARREA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSMONTENEGRO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSMONTENEGRO'));
+
+-- TRANSMONTENEGRO SL (LARREA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANSMONTENEGRO SL', 'COTIZADA', 'TRANSMONTENEGRO SL', '', 'LARREA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSMONTENEGRO SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSMONTENEGRO SL'));
+
+-- TRANSPORTES DE CEREALES Y LEÑA (MOLYMA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANSPORTES DE CEREALES Y LEÑA', 'COTIZADA', 'TRANSPORTES DE CEREALES Y LEÑA', '', 'MOLYMA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTES DE CEREALES Y LEÑA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTES DE CEREALES Y LEÑA'));
+
+-- TRANSPORTES P. SARASA (ROBERTO)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANSPORTES P. SARASA', 'COTIZADA', 'TRANSPORTES P. SARASA', 'B22279251', 'ROBERTO', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTES P. SARASA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTES P. SARASA'));
+
+-- TRANSPORTES J.GAMIZ-OMEGAURBATRA-MARES-GOYO (TTE.S.J.GAMIZ-GOYO-MARES)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANSPORTES J.GAMIZ-OMEGAURBATRA-MARES-GOYO', 'COTIZADA', 'TRANSPORTES J.GAMIZ-OMEGAURBATRA-MARES-GOYO', '', 'TTE.S.J.GAMIZ-GOYO-MARES', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTES J.GAMIZ-OMEGAURBATRA-MARES-GOYO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTES J.GAMIZ-OMEGAURBATRA-MARES-GOYO'));
+
+-- TTES. PATRICIO (GADA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TTES. PATRICIO', 'COTIZADA', 'TTES. PATRICIO', 'B78915287', 'GADA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TTES. PATRICIO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TTES. PATRICIO'));
+
+-- WITTMANN TECHNOLOGY SPAIN (PIQUE)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'WITTMANN TECHNOLOGY SPAIN', 'COTIZADA', 'WITTMANN TECHNOLOGY SPAIN', '', 'PIQUE', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('WITTMANN TECHNOLOGY SPAIN')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('WITTMANN TECHNOLOGY SPAIN'));
+
+-- ABONOS Y SEMILLAS SA (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'ABONOS Y SEMILLAS SA', 'EN ESTUDIO', 'ABONOS Y SEMILLAS SA', 'A09307935', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('ABONOS Y SEMILLAS SA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('ABONOS Y SEMILLAS SA'));
+
+-- AFANDECOR, AFANMONTAJES Y APLOMO (ALCOSEGUR)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'AFANDECOR, AFANMONTAJES Y APLOMO', 'EN ESTUDIO', 'AFANDECOR, AFANMONTAJES Y APLOMO', '', 'ALCOSEGUR', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('AFANDECOR, AFANMONTAJES Y APLOMO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('AFANDECOR, AFANMONTAJES Y APLOMO'));
+
+-- ALTIPLANO TRANS (ASMEVAL)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'ALTIPLANO TRANS', 'EN ESTUDIO', 'ALTIPLANO TRANS', '', 'ASMEVAL', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('ALTIPLANO TRANS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('ALTIPLANO TRANS'));
+
+-- AMURIUZA CUBIERTAS (RICARDO OUTERIÑO)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'AMURIUZA CUBIERTAS', 'EN ESTUDIO', 'AMURIUZA CUBIERTAS', 'B48519425', 'RICARDO OUTERIÑO', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('AMURIUZA CUBIERTAS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('AMURIUZA CUBIERTAS'));
+
+-- ANSAREO AEB (WILLIS)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'ANSAREO AEB', 'EN ESTUDIO', 'ANSAREO AEB', 'B48619258', 'WILLIS', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('ANSAREO AEB')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('ANSAREO AEB'));
+
+-- botanicas de levante (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'botanicas de levante', 'EN ESTUDIO', 'botanicas de levante', '', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('botanicas de levante')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('botanicas de levante'));
+
+-- CABEZOLARI (MOLYMA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'CABEZOLARI', 'EN ESTUDIO', 'CABEZOLARI', '', 'MOLYMA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('CABEZOLARI')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('CABEZOLARI'));
+
+-- CAMILO Y DEL ARCO SL (ARAGONES)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'CAMILO Y DEL ARCO SL', 'EN ESTUDIO', 'CAMILO Y DEL ARCO SL', 'B87373643', 'ARAGONES', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('CAMILO Y DEL ARCO SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('CAMILO Y DEL ARCO SL'));
+
+-- CARA Y TTES.DE BURGOS (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'CARA Y TTES.DE BURGOS', 'EN ESTUDIO', 'CARA Y TTES.DE BURGOS', 'B09289406', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('CARA Y TTES.DE BURGOS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('CARA Y TTES.DE BURGOS'));
+
+-- CIRAC LOGÍSTICA (ROBERTO LARREA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'CIRAC LOGÍSTICA', 'EN ESTUDIO', 'CIRAC LOGÍSTICA', '', 'ROBERTO LARREA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('CIRAC LOGÍSTICA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('CIRAC LOGÍSTICA'));
+
+-- cis flota agustin gonzalez (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'cis flota agustin gonzalez', 'EN ESTUDIO', 'cis flota agustin gonzalez', '', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('cis flota agustin gonzalez')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('cis flota agustin gonzalez'));
+
+-- CONGELATS SALMA, S.L (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'CONGELATS SALMA, S.L', 'EN ESTUDIO', 'CONGELATS SALMA, S.L', 'B84167410', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('CONGELATS SALMA, S.L')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('CONGELATS SALMA, S.L'));
+
+-- CONTENEDORES CALVO VARGAS (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'CONTENEDORES CALVO VARGAS', 'EN ESTUDIO', 'CONTENEDORES CALVO VARGAS', 'B26176354', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('CONTENEDORES CALVO VARGAS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('CONTENEDORES CALVO VARGAS'));
+
+-- FLOTA AFANDECOR, AFANMONTAJES Y APLOMO (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'FLOTA AFANDECOR, AFANMONTAJES Y APLOMO', 'EN ESTUDIO', 'FLOTA AFANDECOR, AFANMONTAJES Y APLOMO', '', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('FLOTA AFANDECOR, AFANMONTAJES Y APLOMO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('FLOTA AFANDECOR, AFANMONTAJES Y APLOMO'));
+
+-- FRILESA & LEBROK (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'FRILESA & LEBROK', 'EN ESTUDIO', 'FRILESA & LEBROK', '', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('FRILESA & LEBROK')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('FRILESA & LEBROK'));
+
+-- GARRIGA OBRES I SERVEIS, S.L (MGA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'GARRIGA OBRES I SERVEIS, S.L', 'EN ESTUDIO', 'GARRIGA OBRES I SERVEIS, S.L', '', 'MGA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('GARRIGA OBRES I SERVEIS, S.L')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('GARRIGA OBRES I SERVEIS, S.L'));
+
+-- GESTIÓN DE INFRAESTRUCTURAS CIVILES (MATA GESTIÓN)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'GESTIÓN DE INFRAESTRUCTURAS CIVILES', 'EN ESTUDIO', 'GESTIÓN DE INFRAESTRUCTURAS CIVILES', 'A99066342', 'MATA GESTIÓN', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('GESTIÓN DE INFRAESTRUCTURAS CIVILES')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('GESTIÓN DE INFRAESTRUCTURAS CIVILES'));
+
+-- GRUPO VIGILANT A30085401 (GESA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'GRUPO VIGILANT A30085401', 'EN ESTUDIO', 'GRUPO VIGILANT A30085401', 'A30085401', 'GESA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('GRUPO VIGILANT A30085401')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('GRUPO VIGILANT A30085401'));
+
+-- hidalgo (ROBERTO)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'hidalgo', 'EN ESTUDIO', 'hidalgo', 'B22248132', 'ROBERTO', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('hidalgo')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('hidalgo'));
+
+-- IDM (PIQUÉ)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'IDM', 'EN ESTUDIO', 'IDM', '', 'PIQUÉ', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('IDM')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('IDM'));
+
+-- JACINTO PEREZ (TRANSPORT & CUSTOMS BULL)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'JACINTO PEREZ', 'EN ESTUDIO', 'JACINTO PEREZ', '', 'TRANSPORT & CUSTOMS BULL', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('JACINTO PEREZ')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('JACINTO PEREZ'));
+
+-- LA ABUELA MARGA (ARAGONES)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'LA ABUELA MARGA', 'EN ESTUDIO', 'LA ABUELA MARGA', 'B45289451', 'ARAGONES', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('LA ABUELA MARGA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('LA ABUELA MARGA'));
+
+-- Nuñez Movilla S.L (KIDEKA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'Nuñez Movilla S.L', 'EN ESTUDIO', 'Nuñez Movilla S.L', '', 'KIDEKA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('Nuñez Movilla S.L')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('Nuñez Movilla S.L'));
+
+-- RECUPERACIONES MORALES (PREMIUM)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'RECUPERACIONES MORALES', 'EN ESTUDIO', 'RECUPERACIONES MORALES', 'B84174341', 'PREMIUM', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('RECUPERACIONES MORALES')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('RECUPERACIONES MORALES'));
+
+-- REHABILITACIONS PONS (PIQUÉ)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'REHABILITACIONS PONS', 'EN ESTUDIO', 'REHABILITACIONS PONS', '', 'PIQUÉ', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('REHABILITACIONS PONS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('REHABILITACIONS PONS'));
+
+-- Remar (GOYO)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'Remar', 'EN ESTUDIO', 'Remar', '', 'GOYO', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('Remar')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('Remar'));
+
+-- RG ROUTIER EUROPEAN TRANSPORT & LOGISTICS (MOLYMA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'RG ROUTIER EUROPEAN TRANSPORT & LOGISTICS', 'EN ESTUDIO', 'RG ROUTIER EUROPEAN TRANSPORT & LOGISTICS', '', 'MOLYMA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('RG ROUTIER EUROPEAN TRANSPORT & LOGISTICS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('RG ROUTIER EUROPEAN TRANSPORT & LOGISTICS'));
+
+-- SANCHEZ VAZQUEZ (COTASEGUR)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'SANCHEZ VAZQUEZ', 'EN ESTUDIO', 'SANCHEZ VAZQUEZ', '', 'COTASEGUR', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('SANCHEZ VAZQUEZ')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('SANCHEZ VAZQUEZ'));
+
+-- SERVICIO DE ALQUILER CAIDERO S.L (ANAGAN)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'SERVICIO DE ALQUILER CAIDERO S.L', 'EN ESTUDIO', 'SERVICIO DE ALQUILER CAIDERO S.L', '', 'ANAGAN', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('SERVICIO DE ALQUILER CAIDERO S.L')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('SERVICIO DE ALQUILER CAIDERO S.L'));
+
+-- SERVICIOS LOGISTICOS DEL SUR (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'SERVICIOS LOGISTICOS DEL SUR', 'EN ESTUDIO', 'SERVICIOS LOGISTICOS DEL SUR', '', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('SERVICIOS LOGISTICOS DEL SUR')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('SERVICIOS LOGISTICOS DEL SUR'));
+
+-- Tea Tek en Personal Family Office (PERSONALFAMILY)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'Tea Tek en Personal Family Office', 'EN ESTUDIO', 'Tea Tek en Personal Family Office', '', 'PERSONALFAMILY', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('Tea Tek en Personal Family Office')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('Tea Tek en Personal Family Office'));
+
+-- TRACTOLE,S.A (MOLYMA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRACTOLE,S.A', 'EN ESTUDIO', 'TRACTOLE,S.A', '', 'MOLYMA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRACTOLE,S.A')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRACTOLE,S.A'));
+
+-- TRANS JJ JUNDE SL (AENUS)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANS JJ JUNDE SL', 'EN ESTUDIO', 'TRANS JJ JUNDE SL', '', 'AENUS', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANS JJ JUNDE SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANS JJ JUNDE SL'));
+
+-- TRANSPORTE SEGOVIA (TERRANEA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANSPORTE SEGOVIA', 'EN ESTUDIO', 'TRANSPORTE SEGOVIA', 'A78394699', 'TERRANEA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTE SEGOVIA')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTE SEGOVIA'));
+
+-- callejero bueno 2025 (TRANSPORTES CALLEJERO BUENO - FLOTA WILLIS)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'callejero bueno 2025', 'EN ESTUDIO', 'callejero bueno 2025', '', 'TRANSPORTES CALLEJERO BUENO - FLOTA WILLIS', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('callejero bueno 2025')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('callejero bueno 2025'));
+
+-- callejero bueno 2026 (TRANSPORTES CALLEJERO BUENO - FLOTA WILLIS)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'callejero bueno 2026', 'EN ESTUDIO', 'callejero bueno 2026', 'B99479743', 'TRANSPORTES CALLEJERO BUENO - FLOTA WILLIS', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('callejero bueno 2026')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('callejero bueno 2026'));
+
+-- TRANSPORTES JABOSIO (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANSPORTES JABOSIO', 'EN ESTUDIO', 'TRANSPORTES JABOSIO', '', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTES JABOSIO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTES JABOSIO'));
+
+-- TRANSPORTES JACINTO DEL POZO (MOLYMA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANSPORTES JACINTO DEL POZO', 'EN ESTUDIO', 'TRANSPORTES JACINTO DEL POZO', '', 'MOLYMA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTES JACINTO DEL POZO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTES JACINTO DEL POZO'));
+
+-- TRANSPORTES MATAS 2016 (MOLYMA)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TRANSPORTES MATAS 2016', 'EN ESTUDIO', 'TRANSPORTES MATAS 2016', '', 'MOLYMA', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTES MATAS 2016')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTES MATAS 2016'));
+
+-- TTES.DELFIN ESPINOSA, S.L + LOGIESBER (sin corredor)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'TTES.DELFIN ESPINOSA, S.L + LOGIESBER', 'EN ESTUDIO', 'TTES.DELFIN ESPINOSA, S.L + LOGIESBER', '', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TTES.DELFIN ESPINOSA, S.L + LOGIESBER')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TTES.DELFIN ESPINOSA, S.L + LOGIESBER'));
+
+-- UNECOL ADHESIVE IDEAS (MDS)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'UNECOL ADHESIVE IDEAS', 'EN ESTUDIO', 'UNECOL ADHESIVE IDEAS', '', 'MDS', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('UNECOL ADHESIVE IDEAS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('UNECOL ADHESIVE IDEAS'));
+
+-- VIDAL OBRAS Y SERVICIOS (MATA GESTIÓN)
+INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, created_at, updated_at)
+SELECT lower(hex(randomblob(16))), 'VIDAL OBRAS Y SERVICIOS', 'EN ESTUDIO', 'VIDAL OBRAS Y SERVICIOS', 'A22027890', 'MATA GESTIÓN', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('VIDAL OBRAS Y SERVICIOS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('VIDAL OBRAS Y SERVICIOS'));
+
 COMMIT;
 
 -- Verificar resultado:
