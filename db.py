@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS mejoras (
 INSERT OR IGNORE INTO usuarios (id, username, password_hash, rol) VALUES
   ('usr_titan',  'TITAN',  '{_HASH_DEFAULT}', 'usuario'),
   ('usr_carlos', 'CARLOS', '{_HASH_DEFAULT}', 'usuario'),
-  ('usr_raquel', 'RAQUEL', '{_HASH_DEFAULT}', 'usuario'),
+  ('usr_jaime',  'JAIME',  '{_HASH_DEFAULT}', 'usuario'),
   ('usr_sergio', 'SERGIO', '{_HASH_DEFAULT}', 'admin');
 """
 
