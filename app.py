@@ -720,15 +720,39 @@ import uuid as _uuid
 @app.route('/flotas-historicas', methods=['GET'])
 @require_key
 def get_flotas_historicas():
-    estado = request.args.get('estado', '')
+    estado = request.args.get('estado', '').strip()
+    cif    = request.args.get('cif',    '').strip()
+    q      = request.args.get('q',      '').strip()
     conn   = get_conn()
-    query  = "SELECT * FROM flotas_historicas"
-    params = []
-    if estado:
-        query += " WHERE estado=?"
-        params.append(estado.upper())
-    query += " ORDER BY updated_at DESC"
-    rows = conn.execute(query, params).fetchall()
+
+    if cif:
+        rows = conn.execute(
+            "SELECT * FROM flotas_historicas WHERE upper(trim(cif)) = upper(?) ORDER BY nombre",
+            (cif,)
+        ).fetchall()
+    elif q:
+        words = [w for w in q.upper().split() if len(w) >= 2]
+        if words:
+            conds  = ' AND '.join(['(upper(nombre) LIKE ? OR upper(tomador) LIKE ?)'] * len(words))
+            params = []
+            for w in words:
+                params.extend([f'%{w}%', f'%{w}%'])
+            rows = conn.execute(
+                f"SELECT * FROM flotas_historicas WHERE {conds} ORDER BY nombre LIMIT 30",
+                params
+            ).fetchall()
+        else:
+            rows = []
+    elif estado:
+        rows = conn.execute(
+            "SELECT * FROM flotas_historicas WHERE estado=? ORDER BY updated_at DESC",
+            (estado.upper(),)
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM flotas_historicas ORDER BY updated_at DESC"
+        ).fetchall()
+
     conn.close()
     result = []
     for row in rows:
