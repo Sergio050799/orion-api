@@ -4,18 +4,18 @@ BEGIN TRANSACTION;
 
 -- Transportes Laredo (AON)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, fecha_vencimiento, created_at, updated_at)
-SELECT lower(hex(randomblob(16))), 'Transportes Laredo', 'CONTRATADA', 'Transportes Laredo', '', 'AON', '', '', datetime('now'), datetime('now')
-WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('Transportes Laredo')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('Transportes Laredo'));
+SELECT lower(hex(randomblob(16))), 'TRANSPORTES LAREDO', 'CONTRATADA', 'TRANSPORTES LAREDO', '', 'AON', '', '', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTES LAREDO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTES LAREDO'));
 
 -- Tres Campanas (ARAGONES Y CEMBORAIN)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, fecha_vencimiento, created_at, updated_at)
-SELECT lower(hex(randomblob(16))), 'Tres Campanas', 'CONTRATADA', 'Tres Campanas', '', 'ARAGONES Y CEMBORAIN', '', '2027-07-01', datetime('now'), datetime('now')
-WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('Tres Campanas')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('Tres Campanas'));
+SELECT lower(hex(randomblob(16))), 'TRES CAMPANAS', 'CONTRATADA', 'TRES CAMPANAS', '', 'ARAGONES Y CEMBORAIN', '', '2027-07-01', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRES CAMPANAS')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRES CAMPANAS'));
 
 -- Transportes Isidro San Roman e Hijos SL (ARAGONES Y CEMBORAIN)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, fecha_vencimiento, created_at, updated_at)
-SELECT lower(hex(randomblob(16))), 'Transportes Isidro San Roman e Hijos SL', 'CONTRATADA', 'Transportes Isidro San Roman e Hijos SL', '', 'ARAGONES Y CEMBORAIN', '', '2027-08-07', datetime('now'), datetime('now')
-WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('Transportes Isidro San Roman e Hijos SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('Transportes Isidro San Roman e Hijos SL'));
+SELECT lower(hex(randomblob(16))), 'TRANSPORTES ISIDRO SAN ROMAN E HIJOS SL', 'CONTRATADA', 'TRANSPORTES ISIDRO SAN ROMAN E HIJOS SL', '', 'ARAGONES Y CEMBORAIN', '', '2027-08-07', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTES ISIDRO SAN ROMAN E HIJOS SL')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTES ISIDRO SAN ROMAN E HIJOS SL'));
 
 -- FUNDACION BANCO DE ALIMENTOS DE MADRID (ATSYR CORREDURIA DE SEGUROS)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, fecha_vencimiento, created_at, updated_at)
@@ -69,8 +69,8 @@ WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('PSM
 
 -- Transportes BRAMAR (MINGUEZ SAEZ BROKERS, S.L.)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, fecha_vencimiento, created_at, updated_at)
-SELECT lower(hex(randomblob(16))), 'Transportes BRAMAR', 'CONTRATADA', 'Transportes BRAMAR', '', 'MINGUEZ SAEZ BROKERS, S.L.', '', '2027-01-01', datetime('now'), datetime('now')
-WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('Transportes BRAMAR')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('Transportes BRAMAR'));
+SELECT lower(hex(randomblob(16))), 'TRANSPORTES BRAMAR', 'CONTRATADA', 'TRANSPORTES BRAMAR', '', 'MINGUEZ SAEZ BROKERS, S.L.', '', '2027-01-01', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('TRANSPORTES BRAMAR')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('TRANSPORTES BRAMAR'));
 
 -- BENAYAS SERVICIOS LOGISTICOS SL (MOLYMA)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, fecha_vencimiento, created_at, updated_at)
@@ -79,8 +79,8 @@ WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('BEN
 
 -- Alberto y Antonio estrella grano de oro (MOLYMA)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, fecha_vencimiento, created_at, updated_at)
-SELECT lower(hex(randomblob(16))), 'Alberto y Antonio estrella grano de oro', 'CONTRATADA', 'Alberto y Antonio estrella grano de oro', '', 'MOLYMA', '', '2027-09-01', datetime('now'), datetime('now')
-WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('Alberto y Antonio estrella grano de oro')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('Alberto y Antonio estrella grano de oro'));
+SELECT lower(hex(randomblob(16))), 'ALBERTO Y ANTONIO ESTRELLA GRANO DE ORO', 'CONTRATADA', 'ALBERTO Y ANTONIO ESTRELLA GRANO DE ORO', '', 'MOLYMA', '', '2027-09-01', datetime('now'), datetime('now')
+WHERE NOT EXISTS (SELECT 1 FROM carpetas WHERE upper(trim(tomador)) = upper('ALBERTO Y ANTONIO ESTRELLA GRANO DE ORO')) AND NOT EXISTS (SELECT 1 FROM flotas_historicas WHERE upper(trim(tomador)) = upper('ALBERTO Y ANTONIO ESTRELLA GRANO DE ORO'));
 
 -- ON-RED TRUCK LOGISTICS (MOLYMA)
 INSERT INTO flotas_historicas (id, nombre, estado, tomador, cif, corredor_nombre, notas, fecha_vencimiento, created_at, updated_at)
