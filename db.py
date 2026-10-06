@@ -149,10 +149,37 @@ CREATE TABLE IF NOT EXISTS mejoras (
     ts          TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- ── FLOTAS HISTÓRICAS (pre-Orion) ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS flotas_historicas (
+    id                TEXT PRIMARY KEY,
+    nombre            TEXT NOT NULL DEFAULT '',
+    estado            TEXT NOT NULL DEFAULT 'CONTRATADA',
+    tomador           TEXT NOT NULL DEFAULT '',
+    cif               TEXT NOT NULL DEFAULT '',
+    actividad         TEXT NOT NULL DEFAULT '',
+    corredor_nombre   TEXT NOT NULL DEFAULT '',
+    comision          REAL NOT NULL DEFAULT 0,
+    coberturas        TEXT NOT NULL DEFAULT '[]',
+    prima_total       REAL NOT NULL DEFAULT 0,
+    fecha_inicio      TEXT NOT NULL DEFAULT '',
+    fecha_vencimiento TEXT NOT NULL DEFAULT '',
+    periodicidad      TEXT NOT NULL DEFAULT 'anual',
+    num_poliza        TEXT NOT NULL DEFAULT '',
+    compania          TEXT NOT NULL DEFAULT '',
+    total_vehiculos   INTEGER NOT NULL DEFAULT 0,
+    categoria_flota   TEXT NOT NULL DEFAULT '',
+    notas             TEXT NOT NULL DEFAULT '',
+    created_by        TEXT NOT NULL DEFAULT '',
+    created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_fh_estado ON flotas_historicas(estado);
+
 INSERT OR IGNORE INTO usuarios (id, username, password_hash, rol) VALUES
   ('usr_titan',  'TITAN',  '{_HASH_DEFAULT}', 'usuario'),
   ('usr_carlos', 'CARLOS', '{_HASH_DEFAULT}', 'usuario'),
-  ('usr_jaime',  'JAIME',  '{_HASH_DEFAULT}', 'usuario'),
+  ('usr_mmt',    'MMT',    '{_HASH_DEFAULT}', 'usuario'),
   ('usr_sergio', 'SERGIO', '{_HASH_DEFAULT}', 'admin');
 """
 

@@ -713,6 +713,133 @@ def get_stats():
     })
 
 
+# ─── FLOTAS HISTÓRICAS ────────────────────────────────────────────────────────
+
+import uuid as _uuid
+
+@app.route('/flotas-historicas', methods=['GET'])
+@require_key
+def get_flotas_historicas():
+    estado = request.args.get('estado', '')
+    conn   = get_conn()
+    query  = "SELECT * FROM flotas_historicas"
+    params = []
+    if estado:
+        query += " WHERE estado=?"
+        params.append(estado.upper())
+    query += " ORDER BY updated_at DESC"
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    result = []
+    for row in rows:
+        r = dict(row)
+        try:
+            r['coberturas'] = json.loads(r['coberturas'])
+        except Exception:
+            r['coberturas'] = []
+        result.append(r)
+    return jsonify(result)
+
+
+@app.route('/flotas-historicas', methods=['POST'])
+@require_key
+def post_flotas_historicas():
+    body = request.get_json(silent=True) or {}
+    fid  = str(_uuid.uuid4())
+    ts   = now_iso()
+    coberturas = json.dumps(body.get('coberturas', []))
+    conn = get_conn()
+    try:
+        conn.execute("""
+            INSERT INTO flotas_historicas
+              (id, nombre, estado, tomador, cif, actividad,
+               corredor_nombre, comision, coberturas, prima_total,
+               fecha_inicio, fecha_vencimiento, periodicidad,
+               num_poliza, compania, total_vehiculos, categoria_flota,
+               notas, created_by, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, [
+            fid,
+            str(body.get('nombre', '')).strip(),
+            str(body.get('estado', 'CONTRATADA')).upper().strip(),
+            str(body.get('tomador', '')).strip(),
+            str(body.get('cif', '')).strip(),
+            str(body.get('actividad', '')).strip(),
+            str(body.get('corredor_nombre', '')).strip(),
+            float(body.get('comision', 0) or 0),
+            coberturas,
+            float(body.get('prima_total', 0) or 0),
+            str(body.get('fecha_inicio', '')).strip(),
+            str(body.get('fecha_vencimiento', '')).strip(),
+            str(body.get('periodicidad', 'anual')).strip(),
+            str(body.get('num_poliza', '')).strip(),
+            str(body.get('compania', '')).strip(),
+            int(body.get('total_vehiculos', 0) or 0),
+            str(body.get('categoria_flota', '')).strip(),
+            str(body.get('notas', '')).strip(),
+            str(body.get('created_by', '')).strip(),
+            ts, ts,
+        ])
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({'ok': True, 'id': fid}), 201
+
+
+@app.route('/flotas-historicas/<fid>', methods=['PUT'])
+@require_key
+def put_flota_historica(fid):
+    body = request.get_json(silent=True) or {}
+    ts   = now_iso()
+    coberturas = json.dumps(body.get('coberturas', []))
+    conn = get_conn()
+    try:
+        conn.execute("""
+            UPDATE flotas_historicas SET
+              nombre=?, estado=?, tomador=?, cif=?, actividad=?,
+              corredor_nombre=?, comision=?, coberturas=?, prima_total=?,
+              fecha_inicio=?, fecha_vencimiento=?, periodicidad=?,
+              num_poliza=?, compania=?, total_vehiculos=?, categoria_flota=?,
+              notas=?, updated_at=?
+            WHERE id=?
+        """, [
+            str(body.get('nombre', '')).strip(),
+            str(body.get('estado', 'CONTRATADA')).upper().strip(),
+            str(body.get('tomador', '')).strip(),
+            str(body.get('cif', '')).strip(),
+            str(body.get('actividad', '')).strip(),
+            str(body.get('corredor_nombre', '')).strip(),
+            float(body.get('comision', 0) or 0),
+            coberturas,
+            float(body.get('prima_total', 0) or 0),
+            str(body.get('fecha_inicio', '')).strip(),
+            str(body.get('fecha_vencimiento', '')).strip(),
+            str(body.get('periodicidad', 'anual')).strip(),
+            str(body.get('num_poliza', '')).strip(),
+            str(body.get('compania', '')).strip(),
+            int(body.get('total_vehiculos', 0) or 0),
+            str(body.get('categoria_flota', '')).strip(),
+            str(body.get('notas', '')).strip(),
+            ts, fid,
+        ])
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({'ok': True})
+
+
+@app.route('/flotas-historicas/<fid>', methods=['DELETE'])
+@require_key
+def delete_flota_historica(fid):
+    conn = get_conn()
+    try:
+        conn.execute("DELETE FROM flotas_historicas WHERE id=?", [fid])
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({'ok': True})
+
+
 # ─── Ping ─────────────────────────────────────────────────────────────────────
 
 @app.route('/ping', methods=['GET'])
