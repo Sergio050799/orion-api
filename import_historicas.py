@@ -382,8 +382,7 @@ def run():
 
     conn.commit()
     conn.close()
-    print(f'
-Insertadas: {ok}  |  Saltadas (ya existen): {skip}  |  Errores: {err}')
+    print('Insertadas: %d  |  Saltadas: %d  |  Errores: %d' % (ok, skip, err))
     print('=== FIN ===')
 
 if __name__ == '__main__':
