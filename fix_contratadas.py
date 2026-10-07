@@ -35,6 +35,12 @@ CORREDOR_KEYS = [
     (['montagut'],              'SÁEZ DE MONTAGUT & MORENO'),
     (['saez', 'moreno'],        'SÁEZ DE MONTAGUT & MORENO'),
     (['willis'],                'WILLIS IBERIA CORREDURIA DE SEGUROS Y REASEGUROS SA'),
+    (['ruizdominguez'],         'CORREDURIA DE SEGUROS RUIZ DOMINGUEZ 2000, S.L.'),
+    (['ecocasbroker'],          'ECOCASBROKER, S.L.'),
+    (['multigestion'],          'MULTIGESTIÓN ASEGURADORA, CORREDURÍA DE SEGUROS SL'),
+    (['basurte'],               "BASURTE CORREDORIA D'ASSEGURANCES, S.L."),
+    (['centregestor'],          'CENTRE GESTOR LLEIDA, S.A.'),
+    (['gesa'],                  'GESA MEDIACIÓN, SLU'),
 ]
 
 # (corredor_clave, flota, fecha_vto)
@@ -67,8 +73,19 @@ FLOTAS = [
     ('premium',   'TRANSPORTES DALMUR SL',                      '31/12/2026'),
     ('premium',   'AGUSTIN MARTINEZ SL',                        '09/06/2027'),
     ('montagut',  'SEJERCON SL',                                '20/07/2027'),
-    ('willis',    'GEODIS RT SPAIN SA',                         '01/01/2027'),
-    ('willis',    'TOPFORM SL',                                 '31/12/2026'),
+    ('willis',          'GEODIS RT SPAIN SA',                              '01/01/2027'),
+    ('willis',          'TOPFORM SL',                                      '31/12/2026'),
+    # FLOTAS TITAN 2025-2026
+    ('ruizdominguez',   'ALBIA GESTION DE SERVICIOS, S.L.',                '01/04/2027'),
+    ('ecocasbroker',    'AMBULANCIAS CSA',                                  '30/09/2027'),
+    ('multigestion',    'CAFES PONT, SL',                                   '31/12/2026'),
+    ('basurte',         "CAN CET CENTRE D'INSERCIÓ SOCIO-LABORAL SL",       '16/07/2027'),
+    ('ruizdominguez',   'ITMEE & MANTENIMIENTO S.L.',                       '02/12/2026'),
+    ('centregestor',    'MVG TECHNOLOGY, SL',                               '07/05/2027'),
+    ('ruizdominguez',   'SAURATRANS, S.L.',                                 '31/12/2026'),
+    ('pique',           'SUMINISTROS ESMERALDA',                            '01/01/2027'),
+    ('pique',           'TRANSSESROVIRES SL',                               '01/02/2027'),
+    ('gesa',            'TRANSPORTES HERMANOS HERNANDEZ SL',                '31/12/2026'),
 ]
 
 def get_or_create_corredor(conn, clave, cache, now):
