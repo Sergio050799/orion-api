@@ -1,43 +1,45 @@
 #!/usr/bin/env python3
 """
-Migration: Unificar flotas contratadas como unica fuente de verdad.
-  1. Actualiza nombres de corredores
-  2. Elimina carpetas con estado CONTRATADA
-  3. Inserta las 30 flotas contratadas del portfolio real
+Migration v2: Insertar 30 flotas contratadas con corredor asignado.
+NO elimina carpetas existentes. Solo inserta las que faltan.
 Ejecutar: python fix_contratadas.py
 """
-import sqlite3
-import json
-import os
-import uuid
+import sqlite3, json, os, uuid, unicodedata
 from datetime import datetime
 
 DB_PATH = os.environ.get('ORION_DB_PATH', '/opt/orion/data/orion.db')
 
-# (patron LIKE, nombre limpio)
-CORREDOR_UPDATES = [
-    ('%AON%',                           'AON'),
-    ('%ARAGONES%',                      'ARAGONES Y CEBORIAN'),
-    ('%ATSYR%',                         'ATSYR CORREDURÍA DE SEGUROS'),
-    ('%BIDASOA%',                       'BIDASOA'),
-    ('%MDS%',                           'MDS'),
-    ('%COTASEGUR%',                     'COTASEGUR SL'),
-    ('%DELTA%CORRE%',                   'DELTA CORREDURIA'),
-    ('%ERSM%',                          'ERSM'),
-    ('%JUNYENT%',                       "JUNYENT PRAT CORREDURIA D'ASSEGURANCES, S.L."),
-    ('%FERREIROS%',                     'JOSEFINA FERREIROS SANCHEZ-GUISANDE'),
-    ('%LARREA%',                        'LARREA & BAREA CORREDURÍA DE SEGUROS, S.L.'),
-    ('%PIQUE%CORRE%',                   'M. PIQUE CORREDURIA TECNICA DE SEGUROS, S.A.'),
-    ('%MINGUEZ%',                       'MINGUEZ SAEZ BROKERS, S.L.'),
-    ('%MOLYMA%',                        'MOLYMA, S.A. CORREDURIA DE SEGUROS'),
-    ('%PEDRO%QUEL%',                    'PEDRO MARTINEZ DE QUEL CORREDURIA DE SEGUROS S.L.'),
-    ('%PREMIUM%QUALITY%',               'PREMIUM QUALITY INVESTMENTS, S.L.'),
-    ('%SAEZ%MONTAGUT%',                 'SÁEZ DE MONTAGUT & MORENO'),
-    ('%MONTAGUT%MORENO%',               'SÁEZ DE MONTAGUT & MORENO'),
-    ('%WILLIS%',                        'WILLIS IBERIA CORREDURIA DE SEGUROS Y REASEGUROS SA'),
+
+def norm(s: str) -> str:
+    """Normaliza: minusculas, sin acentos, sin puntuacion extra."""
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
+    return s.lower().strip()
+
+
+# Palabras clave unicas por corredor → nombre definitivo en BD
+CORREDOR_MAP = [
+    (['aon'],                                          'AON'),
+    (['aragones', 'ceborian'],                         'ARAGONES Y CEBORIAN'),
+    (['atsyr'],                                        'ATSYR CORREDURÍA DE SEGUROS'),
+    (['bidasoa'],                                      'BIDASOA'),
+    (['mds'],                                          'MDS'),
+    (['cotasegur'],                                    'COTASEGUR SL'),
+    (['delta', 'corre'],                               'DELTA CORREDURIA'),
+    (['ersm'],                                         'ERSM'),
+    (['junyent'],                                      "JUNYENT PRAT CORREDURIA D'ASSEGURANCES, S.L."),
+    (['ferreiros'],                                    'JOSEFINA FERREIROS SANCHEZ-GUISANDE'),
+    (['larrea'],                                       'LARREA & BAREA CORREDURÍA DE SEGUROS, S.L.'),
+    (['pique', 'corre'],                               'M. PIQUE CORREDURIA TECNICA DE SEGUROS, S.A.'),
+    (['minguez'],                                      'MINGUEZ SAEZ BROKERS, S.L.'),
+    (['molyma'],                                       'MOLYMA, S.A. CORREDURIA DE SEGUROS'),
+    (['pedro', 'quel'],                                'PEDRO MARTINEZ DE QUEL CORREDURIA DE SEGUROS S.L.'),
+    (['premium', 'quality'],                           'PREMIUM QUALITY INVESTMENTS, S.L.'),
+    (['saez', 'montagut'],                             'SÁEZ DE MONTAGUT & MORENO'),
+    (['montagut', 'moreno'],                           'SÁEZ DE MONTAGUT & MORENO'),
+    (['willis'],                                       'WILLIS IBERIA CORREDURIA DE SEGUROS Y REASEGUROS SA'),
 ]
 
-# (nombre_corredor_exacto_tras_update, nombre_flota, fecha_vencimiento)
+# (nombre_corredor_clave, nombre_flota, fecha_vencimiento)
 FLOTAS = [
     ('AON',                                                 'TRANSPORTES HERMANOS LAREDO, SA',             '31/03/2027'),
     ('ARAGONES Y CEBORIAN',                                 'TRES CAMPANAS',                               '01/07/2027'),
@@ -72,56 +74,76 @@ FLOTAS = [
 ]
 
 
+def find_corredor_id(conn, target_nombre: str, corr_cache: dict) -> str | None:
+    """Busca corredor por nombre normalizado. Si no existe, lo crea."""
+    # 1. Match exacto (ya normalizado del update anterior)
+    if target_nombre in corr_cache:
+        return corr_cache[target_nombre]
+
+    # 2. Match por palabras clave (normalizado)
+    target_norm = norm(target_nombre)
+    for keywords, canonical in CORREDOR_MAP:
+        if all(kw in target_norm for kw in keywords):
+            # Buscar en cache con el nombre canonico
+            if canonical in corr_cache:
+                return corr_cache[canonical]
+            # Buscar por keywords en BD
+            for nombre_bd, cid in corr_cache.items():
+                nombre_bd_norm = norm(nombre_bd)
+                if all(kw in nombre_bd_norm for kw in keywords):
+                    # Actualizar nombre a canonico
+                    conn.execute("UPDATE corredores SET nombre=? WHERE id=?", [canonical, cid])
+                    corr_cache[canonical] = cid
+                    del corr_cache[nombre_bd]
+                    print(f"   ✎ Corredor renombrado: '{nombre_bd}' → '{canonical}'")
+                    return cid
+
+    # 3. No encontrado — crear corredor nuevo
+    new_id = 'corr_' + uuid.uuid4().hex[:16]
+    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    conn.execute("""
+        INSERT INTO corredores (id, nombre, creado_por, created_at, updated_at)
+        VALUES (?, ?, 'SPIKE', ?, ?)
+    """, [new_id, target_nombre, now, now])
+    corr_cache[target_nombre] = new_id
+    print(f"   ✚ Corredor creado: '{target_nombre}' (id={new_id})")
+    return new_id
+
+
 def run():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')
+    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    print(f"\n[fix_contratadas] DB: {DB_PATH}\n")
+    print(f"\n=== fix_contratadas v2 === DB: {DB_PATH}\n")
 
-    # ── 1. Actualizar nombres de corredores ────────────────────────────────────
-    print("1. Actualizando nombres de corredores...")
-    for pattern, new_name in CORREDOR_UPDATES:
-        rows = conn.execute(
-            "SELECT id, nombre FROM corredores WHERE UPPER(nombre) LIKE UPPER(?)", [pattern]
-        ).fetchall()
-        for r in rows:
-            conn.execute("UPDATE corredores SET nombre=?, updated_at=? WHERE id=?",
-                         [new_name, now, r['id']])
-            print(f"   ✓ '{r['nombre']}' → '{new_name}'")
+    # ── Mostrar corredores actuales ───────────────────────────────────────────
+    rows_corr = conn.execute("SELECT id, nombre FROM corredores ORDER BY nombre").fetchall()
+    print(f"Corredores en BD ({len(rows_corr)}):")
+    corr_cache = {}
+    for r in rows_corr:
+        print(f"  [{r['id']}] {r['nombre']}")
+        corr_cache[r['nombre']] = r['id']
 
-    conn.commit()
+    print()
 
-    # ── 2. Construir mapa corredor_nombre → id ─────────────────────────────────
-    corredores = conn.execute("SELECT id, nombre FROM corredores").fetchall()
-    corr_map = {r['nombre']: r['id'] for r in corredores}
-    print(f"\n2. Corredores en BD: {len(corr_map)}")
+    # ── Flotas CONTRATADA actuales (no tocar) ─────────────────────────────────
+    existing = conn.execute(
+        "SELECT nombre FROM carpetas WHERE estado='CONTRATADA'"
+    ).fetchall()
+    existing_names = {norm(r['nombre']) for r in existing}
+    print(f"Carpetas CONTRATADA existentes ({len(existing_names)}): {[r['nombre'] for r in existing]}\n")
 
-    # ── 3. Eliminar carpetas CONTRATADA ────────────────────────────────────────
-    deleted = conn.execute(
-        "SELECT COUNT(*) FROM carpetas WHERE estado='CONTRATADA'"
-    ).fetchone()[0]
-    conn.execute("DELETE FROM carpetas WHERE estado='CONTRATADA'")
-    conn.commit()
-    print(f"\n3. Eliminadas {deleted} carpetas CONTRATADA")
-
-    # ── 4. Insertar flotas del portfolio real ──────────────────────────────────
-    print(f"\n4. Insertando {len(FLOTAS)} flotas contratadas...")
+    # ── Insertar flotas nuevas ────────────────────────────────────────────────
     inserted = 0
-    missing_corredores = []
-
+    skipped  = 0
     for corredor_nombre, flota_nombre, fecha_vcto in FLOTAS:
-        corredor_id = corr_map.get(corredor_nombre)
-        if not corredor_id:
-            # Fallback: buscar por nombre similar
-            for nombre_bd, cid in corr_map.items():
-                if corredor_nombre.upper()[:10] in nombre_bd.upper():
-                    corredor_id = cid
-                    break
+        if norm(flota_nombre) in existing_names:
+            print(f"   → Existe: '{flota_nombre}' (skip)")
+            skipped += 1
+            continue
 
-        if not corredor_id:
-            missing_corredores.append(corredor_nombre)
-            print(f"   ✗ CORREDOR NO ENCONTRADO: '{corredor_nombre}' — flota '{flota_nombre}' sin asignar")
+        corredor_id = find_corredor_id(conn, corredor_nombre, corr_cache)
 
         carp_id = 'carp_' + uuid.uuid4().hex[:16]
         data = {
@@ -131,35 +153,26 @@ def run():
             'corredor_id': corredor_id,
             'header': {
                 'fechaVencimiento': fecha_vcto,
-                'tomador': '',
-                'cif': '',
-                'actividad': '',
-                'fechaInicio': '',
+                'tomador': '', 'cif': '', 'actividad': '', 'fechaInicio': '',
             },
-            'trabajo': [],
-            'original': [],
-            'oferta': [],
+            'trabajo': [], 'original': [], 'oferta': [],
             'observaciones': '',
-            'createdAt': now,
-            'updatedAt': now,
+            'createdAt': now, 'updatedAt': now,
         }
         conn.execute("""
             INSERT INTO carpetas (id, nombre, estado, corredor_id, creado_por, created_at, updated_at, data)
             VALUES (?, ?, 'CONTRATADA', ?, 'SPIKE', ?, ?, ?)
-        """, [carp_id, flota_nombre, corredor_id, now, now, json.dumps(data, ensure_ascii=False)])
+        """, [carp_id, flota_nombre, corredor_id, now, now,
+              json.dumps(data, ensure_ascii=False)])
         inserted += 1
-        status = f"corredor={corredor_nombre}" if corredor_id else "SIN CORREDOR"
-        print(f"   ✓ '{flota_nombre}' ({status}, vcto {fecha_vcto})")
+        corr_label = corredor_nombre.split()[0] if corredor_nombre else 'SIN_CORREDOR'
+        print(f"   ✓ '{flota_nombre}' → {corr_label} | vcto {fecha_vcto}")
 
     conn.commit()
-    print(f"\n✓ Insertadas {inserted} flotas contratadas")
-
-    if missing_corredores:
-        print(f"\n⚠ Corredores no encontrados: {missing_corredores}")
-        print("  Crea estos corredores en Orion y vuelve a asignarlos manualmente.")
-
     conn.close()
-    print("\n[fix_contratadas] Completado.\n")
+
+    print(f"\nResultado: {inserted} flotas insertadas, {skipped} ya existían.")
+    print("=== FIN ===\n")
 
 
 if __name__ == '__main__':
