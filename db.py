@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS corredores (
     observaciones TEXT NOT NULL DEFAULT '',
     sucursal      TEXT NOT NULL DEFAULT '',
     comercial     TEXT NOT NULL DEFAULT '',
+    id_perceptor  TEXT NOT NULL DEFAULT '',
     creado_por    TEXT NOT NULL DEFAULT '',
     created_at    TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
@@ -139,6 +140,105 @@ CREATE TABLE IF NOT EXISTS silverdat_session (
     expires_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- ── MOTOR DE PRIMAS — ESTADÍSTICAS MMT ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS mmt_stats (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    tipologia    TEXT NOT NULL,
+    id_garantia  TEXT NOT NULL,
+    id_cobertura TEXT NOT NULL,
+    fecha_foto   TEXT NOT NULL,
+    prima        REAL NOT NULL DEFAULT 0,
+    coste        REAL NOT NULL DEFAULT 0,
+    exposicion   REAL NOT NULL DEFAULT 0,
+    lr           REAL,
+    fq           REAL,
+    stros        INTEGER NOT NULL DEFAULT 0,
+    importado_at TEXT NOT NULL DEFAULT (datetime('now')),
+    importado_por TEXT NOT NULL DEFAULT '',
+    UNIQUE(tipologia, id_garantia, id_cobertura, fecha_foto)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mmt_stats_tipo ON mmt_stats(tipologia, fecha_foto);
+
+-- ── MOTOR DE PRIMAS — MAPEO TIPOLOGÍAS ────────────────────────────────────────
+-- Mapea tipo_vehiculo de ORION (normalizado) a nombre de tipología en mmt_stats
+CREATE TABLE IF NOT EXISTS mmt_tipologia_map (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    orion_tipo    TEXT NOT NULL UNIQUE,
+    mmt_tipologia TEXT NOT NULL,
+    categoria     INTEGER NOT NULL DEFAULT 1,
+    notas         TEXT NOT NULL DEFAULT ''
+);
+
+-- ── MOTOR DE PRIMAS — PARÁMETROS ECONÓMICOS ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS motor_params (
+    clave       TEXT PRIMARY KEY,
+    valor       REAL,
+    descripcion TEXT NOT NULL DEFAULT '',
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_by  TEXT NOT NULL DEFAULT ''
+);
+
+-- ── MOTOR DE PRIMAS — CATÁLOGO DE VEHÍCULOS MMT ───────────────────────────────
+CREATE TABLE IF NOT EXISTS mmt_catalogo_vehiculos (
+    id_veh         TEXT PRIMARY KEY,
+    id_veh_base7   TEXT NOT NULL DEFAULT '',
+    marca          TEXT NOT NULL DEFAULT '',
+    modelo         TEXT NOT NULL DEFAULT '',
+    version        TEXT NOT NULL DEFAULT '',
+    id_clase       TEXT NOT NULL DEFAULT '',
+    motorizacion   TEXT NOT NULL DEFAULT '',
+    combustible    TEXT NOT NULL DEFAULT '',
+    num_puertas    INTEGER NOT NULL DEFAULT 0,
+    fec_ini_comerc TEXT NOT NULL DEFAULT '',
+    fec_fin_comerc TEXT NOT NULL DEFAULT '',
+    pff            REAL NOT NULL DEFAULT 0,
+    pvp            REAL NOT NULL DEFAULT 0,
+    pma            REAL NOT NULL DEFAULT 0,
+    num_velocidades INTEGER NOT NULL DEFAULT 0,
+    transmision    TEXT NOT NULL DEFAULT '',
+    selec_riesgo   INTEGER NOT NULL DEFAULT 0,
+    num_plazas_min INTEGER NOT NULL DEFAULT 0,
+    num_plazas_max INTEGER NOT NULL DEFAULT 0,
+    tara           REAL NOT NULL DEFAULT 0,
+    kw             REAL NOT NULL DEFAULT 0,
+    fec_carga      TEXT NOT NULL DEFAULT '',
+    ts_update      TEXT NOT NULL DEFAULT '',
+    importado_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_cat_veh_marca  ON mmt_catalogo_vehiculos(marca);
+CREATE INDEX IF NOT EXISTS idx_cat_veh_clase  ON mmt_catalogo_vehiculos(id_clase);
+CREATE INDEX IF NOT EXISTS idx_cat_veh_modelo ON mmt_catalogo_vehiculos(marca, modelo);
+
+-- ── MOTOR DE PRIMAS — CATÁLOGO COBERTURAS MMT ────────────────────────────────
+CREATE TABLE IF NOT EXISTS mmt_coberturas_catalog (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    categoria   TEXT NOT NULL DEFAULT '',
+    codigo_tipo TEXT NOT NULL DEFAULT '',
+    garantia    TEXT,
+    cobertura   TEXT,
+    subcobertura TEXT,
+    franquicia  TEXT,
+    nombre      TEXT NOT NULL DEFAULT '',
+    indem_max   REAL,
+    UNIQUE(categoria, garantia, cobertura, subcobertura, franquicia)
+);
+CREATE INDEX IF NOT EXISTS idx_cob_cat ON mmt_coberturas_catalog(categoria, garantia, cobertura);
+
+-- ── MOTOR DE PRIMAS — PRIMAS MEDIAS MMT ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS mmt_primas_medias (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    tipologia   TEXT NOT NULL DEFAULT '',
+    id_garantia TEXT NOT NULL DEFAULT '',
+    id_cobertura TEXT NOT NULL DEFAULT '',
+    fecha_foto  TEXT NOT NULL DEFAULT '',
+    prima_media REAL NOT NULL DEFAULT 0,
+    fuente      TEXT NOT NULL DEFAULT 'Primas_medias_todas_tarifas.xlsx',
+    importado_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(tipologia, id_garantia, id_cobertura, fecha_foto)
+);
+CREATE INDEX IF NOT EXISTS idx_pm_tipologia ON mmt_primas_medias(tipologia, fecha_foto);
+
 -- ── MEJORAS ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS mejoras (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -175,6 +275,35 @@ CREATE TABLE IF NOT EXISTS flotas_historicas (
 );
 
 CREATE INDEX IF NOT EXISTS idx_fh_estado ON flotas_historicas(estado);
+
+-- Consultas de Vehículos (normales y masivas): cada estudio se guarda para no perderlo si se cierra la pantalla.
+-- Aditiva: CREATE IF NOT EXISTS, no toca ninguna tabla existente. La matrícula va dentro de data (JSON).
+CREATE TABLE IF NOT EXISTS consultas_vehiculos (
+    id               TEXT PRIMARY KEY,
+    tipo             TEXT NOT NULL DEFAULT 'normal',
+    nombre           TEXT NOT NULL DEFAULT '',
+    creado_por       TEXT NOT NULL DEFAULT '',
+    n_vehiculos      INTEGER NOT NULL DEFAULT 0,
+    n_identificados  INTEGER NOT NULL DEFAULT 0,
+    created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    data             TEXT NOT NULL DEFAULT '{{}}'
+);
+CREATE INDEX IF NOT EXISTS idx_consultas_veh_updated ON consultas_vehiculos(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_consultas_veh_tipo    ON consultas_vehiculos(tipo);
+
+-- Ventanas de años que el sistema de emisión de MMT admite por idVehMMT (se aprenden de sus errores de validación
+-- o se cargan en bloque). Aditiva: CREATE IF NOT EXISTS. Tiene prioridad sobre las fechas del catálogo.
+CREATE TABLE IF NOT EXISTS ventanas_sistema (
+    id_veh      TEXT PRIMARY KEY,
+    fab_min     INTEGER NOT NULL DEFAULT 0,
+    fab_max     INTEGER NOT NULL DEFAULT 0,
+    mat_min     INTEGER,
+    mat_max     INTEGER,
+    fuente      TEXT NOT NULL DEFAULT '',
+    updated_by  TEXT NOT NULL DEFAULT '',
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
 
 INSERT OR IGNORE INTO usuarios (id, username, password_hash, rol) VALUES
   ('usr_titan',  'TITAN',  '{_HASH_DEFAULT}', 'usuario'),
@@ -217,6 +346,32 @@ PRIMAS_SEED = [
     ('semirremolque',   'terceros',           'internacional', 300),
     ('semirremolque',   'terceros_ampliado',  'internacional', 1200),
     ('semirremolque',   'todo_riesgo',        'internacional', 1950),
+]
+
+MMT_TIPOLOGIA_SEED = [
+    # (orion_tipo, mmt_tipologia, categoria, notas)
+    ('cabeza tractora',   'TRACTOCAMION',       2, ''),
+    ('semirremolque',     'REMOLQUE-SEMI',       2, ''),
+    ('camion rigido',     'CAMION',              2, ''),
+    ('furgoneta',         'FURGON',              1, ''),
+    ('turismo',           'TRUISMOS -1000',      1, 'Turismo < 1000cc o categoría equivalente'),
+    ('motocicleta',       'MOTOCICLETAS',        1, ''),
+    ('furgon pesado',     'FURGON PESADO',       2, ''),
+    ('camion ligero',     'CAMION LIGERO',       2, ''),
+    ('derivado turismo',  'DERIVADO DE TURISMO', 1, ''),
+    ('derivado tt',       'DERIVADO TT',         1, ''),
+    ('vehiculo agricola', 'VH-AGRICOLA',         1, ''),
+    ('vehiculo industrial','VEHICULO INDUSTRIAL', 2, 'Datos históricos 97% reducidos en 202512 — usar con precaución'),
+]
+
+MOTOR_PARAMS_SEED = [
+    # Pendientes de definición autorizada — valor NULL hasta que se configuren
+    ('gastos_fijos_por_vehiculo',  None, 'Gastos fijos por vehículo/año (EUR) — pendiente de definición'),
+    ('gastos_variables_pct',       None, 'Porcentaje de gastos variables sobre prima (0-1) — pendiente'),
+    ('comision_pct',               None, 'Porcentaje de comisión (0-1) — pendiente de definición'),
+    ('margen_pct',                 None, 'Margen de rentabilidad objetivo (0-1) — pendiente'),
+    ('carga_riesgo_pct',           None, 'Carga de riesgo o capital (0-1) — pendiente de definición'),
+    ('foto_activa',                None, 'Fecha de foto MMT activa para cálculos (202609, 202512, 202412)'),
 ]
 
 AJUSTES_SEED = [
@@ -280,9 +435,10 @@ def migrate_db():
                 ('email',        "TEXT NOT NULL DEFAULT ''"),
                 ('telefono',     "TEXT NOT NULL DEFAULT ''"),
                 ('observaciones',"TEXT NOT NULL DEFAULT ''"),
-                ('sucursal',     "TEXT NOT NULL DEFAULT ''"),
+                ('sucursal',      "TEXT NOT NULL DEFAULT ''"),
                 ('comercial',    "TEXT NOT NULL DEFAULT ''"),
-                ('created_at',   "TEXT NOT NULL DEFAULT (datetime('now'))"),
+                ('id_perceptor', "TEXT NOT NULL DEFAULT ''"),
+                ('created_at',   "TEXT NOT NULL DEFAULT '2000-01-01'"),
             ]
             for col, typedef in new_cols:
                 if not _column_exists(conn, 'corredores', col):
@@ -318,7 +474,7 @@ def migrate_db():
                 ('tomador',     "TEXT NOT NULL DEFAULT ''"),
                 ('actividad',   "TEXT NOT NULL DEFAULT ''"),
                 ('corredor_id', "TEXT"),
-                ('created_at',  "TEXT NOT NULL DEFAULT (datetime('now'))"),
+                ('created_at',  "TEXT NOT NULL DEFAULT '2000-01-01'"),
             ]
             for col, typedef in new_cols:
                 if not _column_exists(conn, 'carpetas', col):
@@ -401,6 +557,39 @@ def migrate_db():
                     INSERT OR IGNORE INTO ajustes_config (clave, valor, descripcion)
                     VALUES (?, ?, ?)
                 """, AJUSTES_SEED)
+
+        # ── mmt_tipologia_map: seed si vacío ─────────────────────────────────
+        if _table_exists(conn, 'mmt_tipologia_map'):
+            count = conn.execute("SELECT COUNT(*) FROM mmt_tipologia_map").fetchone()[0]
+            if count == 0:
+                conn.executemany("""
+                    INSERT OR IGNORE INTO mmt_tipologia_map
+                        (orion_tipo, mmt_tipologia, categoria, notas)
+                    VALUES (?, ?, ?, ?)
+                """, MMT_TIPOLOGIA_SEED)
+
+        # ── motor_params: seed si vacío ───────────────────────────────────────
+        if _table_exists(conn, 'motor_params'):
+            count = conn.execute("SELECT COUNT(*) FROM motor_params").fetchone()[0]
+            if count == 0:
+                conn.executemany("""
+                    INSERT OR IGNORE INTO motor_params (clave, valor, descripcion)
+                    VALUES (?, ?, ?)
+                """, MOTOR_PARAMS_SEED)
+            else:
+                # Asegurar que todas las claves del seed existen
+                conn.executemany("""
+                    INSERT OR IGNORE INTO motor_params (clave, valor, descripcion)
+                    VALUES (?, ?, ?)
+                """, MOTOR_PARAMS_SEED)
+
+        # ── mmt_stats: limpiar registros corruptos ────────────────────────────
+        if _table_exists(conn, 'mmt_stats'):
+            deleted = conn.execute(
+                "DELETE FROM mmt_stats WHERE id_cobertura = \"'-\""
+            ).rowcount
+            if deleted > 0:
+                print(f"[db] Eliminados {deleted} registros corruptos de mmt_stats")
 
         conn.commit()
         print("[db] Migración completada")
