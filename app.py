@@ -132,6 +132,9 @@ def post_carpetas():
     try:
         if action == 'upsert':
             c = body.get('carpeta', {})
+            cid = str(c.get('id') or '').strip()
+            if not cid:
+                return jsonify({'ok': False, 'error': 'Falta id de la carpeta'}), 400
             nombre, estado, cif, tomador, actividad, corredor_id, creado_por = _extract_carpeta_meta(c)
             conn.execute("""
                 INSERT INTO carpetas
@@ -143,7 +146,7 @@ def post_carpetas():
                     cif=excluded.cif, tomador=excluded.tomador,
                     actividad=excluded.actividad, corredor_id=excluded.corredor_id,
                     updated_at=excluded.updated_at, data=excluded.data
-            """, [c['id'], nombre, estado, cif, tomador, actividad, corredor_id,
+            """, [cid, nombre, estado, cif, tomador, actividad, corredor_id,
                   creado_por, now_iso(), json.dumps(c)])
             conn.commit()
 
@@ -158,6 +161,9 @@ def post_carpetas():
             try:
                 conn.execute("DELETE FROM carpetas")
                 for c in carpetas:
+                    cid = str(c.get('id') or '').strip()
+                    if not cid:
+                        continue
                     nombre, estado, cif, tomador, actividad, corredor_id, creado_por = _extract_carpeta_meta(c)
                     conn.execute("""
                         INSERT INTO carpetas
@@ -169,7 +175,7 @@ def post_carpetas():
                             cif=excluded.cif, tomador=excluded.tomador,
                             actividad=excluded.actividad, corredor_id=excluded.corredor_id,
                             updated_at=excluded.updated_at, data=excluded.data
-                    """, [c['id'], nombre, estado, cif, tomador, actividad, corredor_id,
+                    """, [cid, nombre, estado, cif, tomador, actividad, corredor_id,
                           creado_por, now_iso(), json.dumps(c)])
                 conn.commit()
             except Exception:
