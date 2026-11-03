@@ -6,26 +6,31 @@ from pathlib import Path
 DB = Path(os.environ.get("ORION_DB_PATH",
     r"C:\Users\garci\Documents\GitHub\orion-api\data\orion.db"))
 
-PRIMAS_NUEVAS = [
-    # tipo, cobertura, ambito, prima
-    ("turismo",              "terceros",          "nacional",  500.0),
-    ("turismo",              "terceros_ampliado", "nacional",  650.0),
-    ("turismo",              "todo_riesgo",       "nacional",  850.0),
-    ("derivado_turismo",     "terceros",          "nacional",  395.0),
-    ("derivado_turismo",     "terceros_ampliado", "nacional",  650.0),
-    ("derivado_turismo",     "todo_riesgo",       "nacional",  950.0),
-    ("derivado_todoterreno", "terceros",          "nacional",  550.0),
-    ("derivado_todoterreno", "terceros_ampliado", "nacional",  750.0),
-    ("derivado_todoterreno", "todo_riesgo",       "nacional", 1150.0),
-    ("furgoneta",            "terceros",          "nacional",  500.0),
-    ("furgoneta",            "terceros_ampliado", "nacional",  650.0),
-    ("furgoneta",            "todo_riesgo",       "nacional", 1050.0),
-    ("furgon",               "terceros",          "nacional",  640.0),
-    ("furgon",               "terceros_ampliado", "nacional",  950.0),
-    ("furgon",               "todo_riesgo",       "nacional", 1350.0),
-    ("moto",                 "terceros",          "nacional",  336.08),
-    ("moto",                 "todo_riesgo",       "nacional",  426.89),
+# Nacional y, para 1.ª cat. + moto, se duplica en Internacional (decisión 03/11: ámbito no cambia la
+# tarifa en esas tipologías; el fallback silencioso dejaba huecos en Admin).
+_CAT1_MOTO = [
+    ("turismo",              "terceros",           500.0),
+    ("turismo",              "terceros_ampliado",  650.0),
+    ("turismo",              "todo_riesgo",        850.0),
+    ("derivado_turismo",     "terceros",           395.0),
+    ("derivado_turismo",     "terceros_ampliado",  650.0),
+    ("derivado_turismo",     "todo_riesgo",        950.0),
+    ("derivado_todoterreno", "terceros",           550.0),
+    ("derivado_todoterreno", "terceros_ampliado",  750.0),
+    ("derivado_todoterreno", "todo_riesgo",       1150.0),
+    ("furgoneta",            "terceros",           500.0),
+    ("furgoneta",            "terceros_ampliado",  650.0),
+    ("furgoneta",            "todo_riesgo",       1050.0),
+    ("furgon",               "terceros",           640.0),
+    ("furgon",               "terceros_ampliado",  950.0),
+    ("furgon",               "todo_riesgo",       1350.0),
+    ("moto",                 "terceros",           336.08),
+    ("moto",                 "todo_riesgo",        426.89),
 ]
+PRIMAS_NUEVAS = (
+    [(t, c, "nacional",      p) for t, c, p in _CAT1_MOTO] +
+    [(t, c, "internacional", p) for t, c, p in _CAT1_MOTO]
+)
 
 AJUSTES_NUEVOS = [
     # clave, valor, descripcion
