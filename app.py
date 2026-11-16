@@ -75,6 +75,23 @@ def auth_verify():
 
 # ─── CARPETAS ─────────────────────────────────────────────────────────────────
 
+def _carpeta_row_to_dict(row):
+    """Convierte una fila de carpeta (con join sesiones_activas) al dict que espera el front."""
+    data = json.loads(row['data']) if row['data'] else {}
+    data['nombre']         = row['nombre'] or data.get('nombre', '')
+    data['estado']         = row['estado'] or data.get('estado', 'EN ESTUDIO')
+    data['corredor_id']    = row['corredor_id'] or data.get('corredor_id')
+    data['creado_por']     = row['creado_por'] or data.get('creado_por', '')
+    data['actualizadaEn']  = row['updated_at'] or data.get('actualizadaEn', '')
+    data['estudiando_por'] = row['ep'].split(',') if row['ep'] else []
+    if 'header' not in data:
+        data['header'] = {}
+    data['header']['cif']       = row['cif'] or data['header'].get('cif', '')
+    data['header']['tomador']   = row['tomador'] or data['header'].get('tomador', '')
+    data['header']['actividad'] = row['actividad'] or data['header'].get('actividad', '')
+    return data
+
+
 @app.route('/carpetas', methods=['GET'])
 @require_key
 def get_carpetas():
@@ -91,23 +108,29 @@ def get_carpetas():
         ORDER BY c.updated_at DESC
     """).fetchall()
     conn.close()
+    return jsonify([_carpeta_row_to_dict(r) for r in rows])
 
-    result = []
-    for row in rows:
-        data = json.loads(row['data']) if row['data'] else {}
-        data['nombre']         = row['nombre'] or data.get('nombre', '')
-        data['estado']         = row['estado'] or data.get('estado', 'EN ESTUDIO')
-        data['corredor_id']    = row['corredor_id'] or data.get('corredor_id')
-        data['creado_por']     = row['creado_por'] or data.get('creado_por', '')
-        data['actualizadaEn']  = row['updated_at'] or data.get('actualizadaEn', '')
-        data['estudiando_por'] = row['ep'].split(',') if row['ep'] else []
-        if 'header' not in data:
-            data['header'] = {}
-        data['header']['cif']       = row['cif'] or data['header'].get('cif', '')
-        data['header']['tomador']   = row['tomador'] or data['header'].get('tomador', '')
-        data['header']['actividad'] = row['actividad'] or data['header'].get('actividad', '')
-        result.append(data)
-    return jsonify(result)
+
+@app.route('/carpetas/<cid>', methods=['GET'])
+@require_key
+def get_carpeta_individual(cid):
+    """Devuelve una única carpeta con el JSON completo. Fase 1 — evita bajar TODAS."""
+    conn = get_conn()
+    row = conn.execute("""
+        SELECT c.id, c.nombre, c.estado, c.cif, c.tomador, c.actividad,
+               c.corredor_id, c.creado_por, c.updated_at, c.data,
+               GROUP_CONCAT(sa.username) AS ep
+        FROM carpetas c
+        LEFT JOIN sesiones_activas sa
+            ON sa.carpeta_id = c.id
+           AND sa.last_seen > datetime('now', '-3 minutes')
+        WHERE c.id = ?
+        GROUP BY c.id
+    """, [cid]).fetchone()
+    conn.close()
+    if not row:
+        return jsonify({'error': 'Carpeta no encontrada'}), 404
+    return jsonify(_carpeta_row_to_dict(row))
 
 
 def _extract_carpeta_meta(c: dict) -> tuple:
@@ -621,8 +644,9 @@ def get_audit():
         query += " AND UPPER(usuario)=?"
         params.append(user.upper())
     if date:
-        query += " AND ts LIKE ?"
-        params.append(f"{date}%")
+        # Rango [date 00:00:00, date+1 00:00:00) — usa idx_audit_ts, el LIKE no lo usaba.
+        query += " AND ts >= ? AND ts < date(?, '+1 day')"
+        params.extend([date, date])
     query += " ORDER BY ts DESC LIMIT ? OFFSET ?"
     params += [limit, offset]
 
@@ -699,19 +723,36 @@ def put_mejora(mejora_id):
 def get_stats():
     conn = get_conn()
     try:
-        hoy   = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-        mes   = datetime.now(timezone.utc).strftime('%Y-%m')
+        hoy        = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        inicio_mes = datetime.now(timezone.utc).strftime('%Y-%m-01')
 
-        total_carpetas   = conn.execute("SELECT COUNT(*) FROM carpetas").fetchone()[0]
-        carpetas_estudio = conn.execute("SELECT COUNT(*) FROM carpetas WHERE estado='EN ESTUDIO'").fetchone()[0]
-        carpetas_contrat = conn.execute("SELECT COUNT(*) FROM carpetas WHERE estado='CONTRATADA'").fetchone()[0]
+        # Fase 1 opt: 3 counts de carpetas en 1 query
+        cs = conn.execute("""
+            SELECT COUNT(*) AS total,
+                   SUM(CASE WHEN estado='EN ESTUDIO' THEN 1 ELSE 0 END) AS estudio,
+                   SUM(CASE WHEN estado='CONTRATADA' THEN 1 ELSE 0 END) AS contrat
+            FROM carpetas
+        """).fetchone()
+        total_carpetas, carpetas_estudio, carpetas_contrat = cs[0], cs[1] or 0, cs[2] or 0
+
         total_corredores = conn.execute("SELECT COUNT(*) FROM corredores").fetchone()[0]
         total_usuarios   = conn.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0]
-        sd_hoy           = conn.execute("SELECT COUNT(*) FROM historial_silverdat WHERE fecha_consulta LIKE ?", [f"{hoy}%"]).fetchone()[0]
-        sd_mes           = conn.execute("SELECT COUNT(*) FROM historial_silverdat WHERE fecha_consulta LIKE ?", [f"{mes}%"]).fetchone()[0]
+
+        # Fase 1 opt: silverdat hoy+mes en 1 query usando rango BETWEEN con idx_historial_sd_fecha
+        sd = conn.execute("""
+            SELECT SUM(CASE WHEN fecha_consulta >= ? AND fecha_consulta < date(?, '+1 day') THEN 1 ELSE 0 END) AS hoy,
+                   SUM(CASE WHEN fecha_consulta >= ? AND fecha_consulta < date(?, '+1 month') THEN 1 ELSE 0 END) AS mes
+            FROM historial_silverdat
+        """, [hoy, hoy, inicio_mes, inicio_mes]).fetchone()
+        sd_hoy, sd_mes = sd[0] or 0, sd[1] or 0
+
         sd_total         = conn.execute("SELECT COUNT(*) FROM vehiculos_silverdat").fetchone()[0]
         mejoras_pend     = conn.execute("SELECT COUNT(*) FROM mejoras WHERE estado='pendiente'").fetchone()[0]
-        acciones_hoy     = conn.execute("SELECT COUNT(*) FROM audit_log WHERE ts LIKE ?", [f"{hoy}%"]).fetchone()[0]
+        # Fase 1 opt: rango indexado con idx_audit_ts en vez de LIKE
+        acciones_hoy     = conn.execute(
+            "SELECT COUNT(*) FROM audit_log WHERE ts >= ? AND ts < date(?, '+1 day')",
+            [hoy, hoy]
+        ).fetchone()[0]
 
         ultimas_acciones = conn.execute("""
             SELECT usuario, accion, detalle, ts FROM audit_log

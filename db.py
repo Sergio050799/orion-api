@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS historial_silverdat (
 
 CREATE INDEX IF NOT EXISTS idx_historial_sd_mat   ON historial_silverdat(matricula);
 CREATE INDEX IF NOT EXISTS idx_historial_sd_fecha ON historial_silverdat(fecha_consulta DESC);
+CREATE INDEX IF NOT EXISTS idx_historial_sd_corr  ON historial_silverdat(corredor_id);
 
 CREATE TABLE IF NOT EXISTS sesiones_activas (
     carpeta_id TEXT NOT NULL,
@@ -131,6 +132,8 @@ CREATE TABLE IF NOT EXISTS audit_log (
 
 CREATE INDEX IF NOT EXISTS idx_audit_ts      ON audit_log(ts DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_usuario ON audit_log(usuario);
+-- Fase 1 opt: nombre del corredor para ORDER BY en /corredores sin full scan.
+CREATE INDEX IF NOT EXISTS idx_corredores_nombre ON corredores(nombre);
 
 -- ── SESIÓN SILVERDAT COMPARTIDA ──────────────────────────────────────────────
 -- Una sola fila (id=1). Cookie compartida entre instancias PM2.
@@ -607,4 +610,27 @@ def init_db():
     conn.commit()
     conn.close()
     migrate_db()
+    # Fase 1 opt: analiza estadísticas de índices para que el planner elija el mejor.
+    # Barato (~ms), idempotente, se puede ejecutar en cada arranque sin coste.
+    try:
+        conn = get_conn()
+        conn.execute("PRAGMA optimize")
+        conn.close()
+    except Exception as e:
+        print(f"[db] PRAGMA optimize falló (no crítico): {e}")
     print(f"[db] SQLite listo en {os.path.abspath(DB_PATH)}")
+
+
+def vacuum_db():
+    """Compacta la BD: libera espacio fragmentado y reescribe en orden óptimo.
+    Pensado para cron semanal. Bloquea escrituras mientras corre (en una BD de 20 MB tarda <1s).
+    Devuelve (tamaño_antes_mb, tamaño_despues_mb)."""
+    import os as _os
+    size_before = _os.path.getsize(DB_PATH) / 1024 / 1024
+    conn = get_conn()
+    conn.execute("VACUUM")
+    conn.close()
+    size_after = _os.path.getsize(DB_PATH) / 1024 / 1024
+    print(f"[db] VACUUM: {size_before:.1f} MB -> {size_after:.1f} MB "
+          f"(liberados {size_before - size_after:.1f} MB)")
+    return size_before, size_after
