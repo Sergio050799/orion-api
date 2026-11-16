@@ -21,7 +21,8 @@ def verify_password(password: str, stored_hash: str, salt) -> bool:
     h = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), str(salt).encode('utf-8'), 260_000).hex()
     return h == stored_hash
 
-_HASH_DEFAULT = '30f2bc83fcd6b4d3834e8950c1cd6addb82cc807fc0eca261fe718da79cbbea5'
+_HASH_DEFAULT  = '30f2bc83fcd6b4d3834e8950c1cd6addb82cc807fc0eca261fe718da79cbbea5'  # MMT2026
+_HASH_OUMAIMA  = 'e66b4384174b20f1565815e67a9623c4a5ae206f4d91d6eed11b1762f7edfe83'  # MMT2027
 
 SCHEMA = f"""
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS corredores (
     cif           TEXT NOT NULL DEFAULT '',
     domicilio     TEXT NOT NULL DEFAULT '',
     comision      REAL NOT NULL DEFAULT 0,
+    comision_extra REAL NOT NULL DEFAULT 0,
     periodicidad  TEXT NOT NULL DEFAULT 'mensual',
     forma_pago    TEXT NOT NULL DEFAULT '',
     contacto      TEXT NOT NULL DEFAULT '',
@@ -306,10 +308,11 @@ CREATE TABLE IF NOT EXISTS ventanas_sistema (
 );
 
 INSERT OR IGNORE INTO usuarios (id, username, password_hash, rol) VALUES
-  ('usr_titan',  'TITAN',  '{_HASH_DEFAULT}', 'usuario'),
-  ('usr_carlos', 'CARLOS', '{_HASH_DEFAULT}', 'usuario'),
-  ('usr_mmt',    'MMT',    '{_HASH_DEFAULT}', 'usuario'),
-  ('usr_sergio', 'SERGIO', '{_HASH_DEFAULT}', 'admin');
+  ('usr_titan',   'TITAN',   '{_HASH_DEFAULT}', 'usuario'),
+  ('usr_carlos',  'CARLOS',  '{_HASH_DEFAULT}', 'usuario'),
+  ('usr_mmt',     'MMT',     '{_HASH_DEFAULT}', 'usuario'),
+  ('usr_sergio',  'SERGIO',  '{_HASH_DEFAULT}', 'admin'),
+  ('usr_oumaima', 'OUMAIMA', '{_HASH_OUMAIMA}', 'usuario');
 """
 
 # ─── Datos iniciales de primas (se insertan solo si la tabla está vacía) ──────
@@ -429,6 +432,7 @@ def migrate_db():
                 ('cif',          "TEXT NOT NULL DEFAULT ''"),
                 ('domicilio',    "TEXT NOT NULL DEFAULT ''"),
                 ('comision',     "REAL NOT NULL DEFAULT 0"),
+                ('comision_extra', "REAL NOT NULL DEFAULT 0"),
                 ('periodicidad', "TEXT NOT NULL DEFAULT 'mensual'"),
                 ('forma_pago',   "TEXT NOT NULL DEFAULT ''"),
                 ('contacto',     "TEXT NOT NULL DEFAULT ''"),

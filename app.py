@@ -209,6 +209,7 @@ def get_corredores():
             'domicilio':           r.get('domicilio', ''),
             'comisionBase':        r.get('comision', 0),
             'porcentajeComision':  r.get('comision', 0),
+            'comisionExtra':       r.get('comision_extra', 0),
             'periodicidad':        r.get('periodicidad', 'mensual'),
             'formaPago':           r.get('forma_pago', ''),
             'contacto':            r.get('contacto', ''),
@@ -240,16 +241,18 @@ def post_corredores():
                 if c.get('comisionBase') is not None
                 else (c.get('porcentajeComision') if c.get('porcentajeComision') is not None else c.get('comision', 0))
             )
+            comision_extra = float(c.get('comisionExtra') if c.get('comisionExtra') is not None else 0)
             conn.execute("""
                 INSERT INTO corredores
-                    (id, codigo, nombre, cif, domicilio, comision, periodicidad,
+                    (id, codigo, nombre, cif, domicilio, comision, comision_extra, periodicidad,
                      forma_pago, contacto, email, telefono, observaciones,
                      sucursal, comercial, id_perceptor, creado_por, updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(id) DO UPDATE SET
                     codigo=excluded.codigo, nombre=excluded.nombre,
                     cif=excluded.cif, domicilio=excluded.domicilio,
-                    comision=excluded.comision, periodicidad=excluded.periodicidad,
+                    comision=excluded.comision, comision_extra=excluded.comision_extra,
+                    periodicidad=excluded.periodicidad,
                     forma_pago=excluded.forma_pago, contacto=excluded.contacto,
                     email=excluded.email, telefono=excluded.telefono,
                     observaciones=excluded.observaciones, sucursal=excluded.sucursal,
@@ -257,7 +260,7 @@ def post_corredores():
                     updated_at=excluded.updated_at
             """, [
                 c['id'], c.get('codigo', ''), c.get('nombre', ''), c.get('cif', ''),
-                c.get('domicilio', ''), comision, c.get('periodicidad', 'mensual'),
+                c.get('domicilio', ''), comision, comision_extra, c.get('periodicidad', 'mensual'),
                 c.get('formaPago', ''), c.get('contacto', ''), c.get('email', ''),
                 c.get('telefono', ''), c.get('observaciones', ''),
                 c.get('sucursal') or '', c.get('comercial') or '',
@@ -281,16 +284,18 @@ def post_corredores():
                         if c.get('comisionBase') is not None
                         else (c.get('porcentajeComision') if c.get('porcentajeComision') is not None else c.get('comision', 0))
                     )
+                    comision_extra = float(c.get('comisionExtra') if c.get('comisionExtra') is not None else 0)
                     conn.execute("""
                         INSERT INTO corredores
-                            (id, codigo, nombre, cif, domicilio, comision, periodicidad,
+                            (id, codigo, nombre, cif, domicilio, comision, comision_extra, periodicidad,
                              forma_pago, contacto, email, telefono, observaciones,
                              sucursal, comercial, id_perceptor, creado_por, updated_at)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                         ON CONFLICT(id) DO UPDATE SET
                             codigo=excluded.codigo, nombre=excluded.nombre,
                             cif=excluded.cif, domicilio=excluded.domicilio,
-                            comision=excluded.comision, periodicidad=excluded.periodicidad,
+                            comision=excluded.comision, comision_extra=excluded.comision_extra,
+                            periodicidad=excluded.periodicidad,
                             forma_pago=excluded.forma_pago, contacto=excluded.contacto,
                             email=excluded.email, telefono=excluded.telefono,
                             observaciones=excluded.observaciones, sucursal=excluded.sucursal,
@@ -299,7 +304,7 @@ def post_corredores():
                             updated_at=excluded.updated_at
                     """, [
                         c['id'], c.get('codigo', ''), c.get('nombre', ''), c.get('cif', ''),
-                        c.get('domicilio', ''), comision, c.get('periodicidad', 'mensual'),
+                        c.get('domicilio', ''), comision, comision_extra, c.get('periodicidad', 'mensual'),
                         c.get('formaPago', ''), c.get('contacto', ''), c.get('email', ''),
                         c.get('telefono', ''), c.get('observaciones', ''),
                         c.get('sucursal') or '', c.get('comercial') or '',
