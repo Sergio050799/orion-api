@@ -207,6 +207,7 @@ def get_corredores():
             'nombre':              r.get('nombre', ''),
             'cif':                 r.get('cif', ''),
             'domicilio':           r.get('domicilio', ''),
+            'comisionBase':        r.get('comision', 0),
             'porcentajeComision':  r.get('comision', 0),
             'periodicidad':        r.get('periodicidad', 'mensual'),
             'formaPago':           r.get('forma_pago', ''),
@@ -234,7 +235,11 @@ def post_corredores():
     try:
         if action == 'upsert':
             c = body.get('corredor', {})
-            comision = float(c.get('porcentajeComision') or c.get('comision') or 0)
+            comision = float(
+                c.get('comisionBase')
+                if c.get('comisionBase') is not None
+                else (c.get('porcentajeComision') if c.get('porcentajeComision') is not None else c.get('comision', 0))
+            )
             conn.execute("""
                 INSERT INTO corredores
                     (id, codigo, nombre, cif, domicilio, comision, periodicidad,
@@ -271,7 +276,11 @@ def post_corredores():
                 return jsonify({'error': 'Sin corredores'}), 400
             try:
                 for c in lista:
-                    comision = float(c.get('porcentajeComision') or c.get('comision') or 0)
+                    comision = float(
+                        c.get('comisionBase')
+                        if c.get('comisionBase') is not None
+                        else (c.get('porcentajeComision') if c.get('porcentajeComision') is not None else c.get('comision', 0))
+                    )
                     conn.execute("""
                         INSERT INTO corredores
                             (id, codigo, nombre, cif, domicilio, comision, periodicidad,
