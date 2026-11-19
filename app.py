@@ -122,6 +122,43 @@ def _extract_carpeta_meta(c: dict) -> tuple:
     return nombre, estado, cif, tomador, actividad, corredor_id, creado_por
 
 
+@app.route('/carpetas/<cid>', methods=['GET'])
+@require_key
+def get_carpeta_individual(cid):
+    """Devuelve una única carpeta con el JSON completo. Fix 19/11: faltaba en V5.
+    Sin este endpoint, el CarpetaScreen al abrir una flota se queda con summary stripped
+    y el usuario no ve trabajo[], oferta[], sincoResultados[], etc."""
+    conn = get_conn()
+    try:
+        row = conn.execute("""
+            SELECT c.id, c.nombre, c.estado, c.cif, c.tomador, c.actividad,
+                   c.corredor_id, c.creado_por, c.updated_at, c.data,
+                   GROUP_CONCAT(sa.username) AS ep
+            FROM carpetas c
+            LEFT JOIN sesiones_activas sa
+                ON sa.carpeta_id = c.id
+               AND sa.last_seen > datetime('now', '-3 minutes')
+            WHERE c.id = ?
+            GROUP BY c.id
+        """, [cid]).fetchone()
+        if not row:
+            return jsonify({'error': 'Carpeta no encontrada'}), 404
+        data = json.loads(row['data']) if row['data'] else {}
+        data['nombre']         = row['nombre'] or data.get('nombre', '')
+        data['estado']         = row['estado'] or data.get('estado', 'EN ESTUDIO')
+        data['corredor_id']    = row['corredor_id'] or data.get('corredor_id')
+        data['creado_por']     = row['creado_por'] or data.get('creado_por', '')
+        data['actualizadaEn']  = row['updated_at'] or data.get('actualizadaEn', '')
+        data['estudiando_por'] = row['ep'].split(',') if row['ep'] else []
+        if 'header' not in data: data['header'] = {}
+        data['header']['cif']       = row['cif'] or data['header'].get('cif', '')
+        data['header']['tomador']   = row['tomador'] or data['header'].get('tomador', '')
+        data['header']['actividad'] = row['actividad'] or data['header'].get('actividad', '')
+        return jsonify(data)
+    finally:
+        conn.close()
+
+
 @app.route('/carpetas', methods=['POST'])
 @require_key
 def post_carpetas():
