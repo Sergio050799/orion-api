@@ -128,6 +128,12 @@ def post_carpetas():
     body   = request.get_json(silent=True) or {}
     action = body.get('action')
     conn   = get_conn()
+    # LOG temporal para diagnosticar quién reescribe corredor_id
+    try:
+        import sys
+        c_log = body.get('carpeta', {}) if action=='upsert' else {}
+        print(f'[POST carpetas] action={action} id={c_log.get("id","-")[:30]} corredor_id={c_log.get("corredor_id","-")}', file=sys.stderr, flush=True)
+    except: pass
 
     try:
         if action == 'upsert':
@@ -136,6 +142,42 @@ def post_carpetas():
             if not cid:
                 return jsonify({'ok': False, 'error': 'Falta id de la carpeta'}), 400
             nombre, estado, cif, tomador, actividad, corredor_id, creado_por = _extract_carpeta_meta(c)
+            # MERGE-PRESERVE: si el cliente envía la carpeta SIN los campos pesados
+            # (trabajo, automaticoVehicles, oferta, original, sincoResultados,
+            # primasMmtInforme, emision), preservamos los que ya están en BD.
+            # Eso evita que un save parcial desde la UI trunque datos previos.
+            # Bug detectado 19/11: Vidriera Arandina perdió 44 vehículos por esto.
+            PRESERVE_KEYS = ('trabajo', 'automaticoVehicles', 'oferta', 'original',
+                             'sincoResultados', 'primasMmtInforme', 'emision',
+                             'catalogoSeleccion', 'configCoberturas')
+            existing = conn.execute("SELECT data, corredor_id FROM carpetas WHERE id=?", [cid]).fetchone()
+            if existing and existing['data']:
+                try:
+                    old = json.loads(existing['data'])
+                    for k in PRESERVE_KEYS:
+                        has_key    = k in c
+                        has_value  = has_key and c.get(k) not in (None, '', [], {})
+                        # Si el campo no viene, o viene vacío cuando antes había contenido → preservar
+                        if not has_value and k in old and old[k] not in (None, '', [], {}):
+                            c[k] = old[k]
+                except Exception:
+                    pass
+            # PRESERVAR corredor_id de la columna si el cliente envía null o un ID fantasma
+            # (p.ej. tras un dedupe, la UI aún tiene el ID viejo cacheado).
+            if corredor_id:
+                existe_cor = conn.execute("SELECT 1 FROM corredores WHERE id=?", [corredor_id]).fetchone()
+                if not existe_cor:
+                    # cliente envió ID inexistente → preservar lo que hay en BD (que está validado)
+                    corredor_id = existing['corredor_id'] if existing else None
+            elif existing and existing['corredor_id']:
+                # cliente envió null, preservar BD
+                corredor_id = existing['corredor_id']
+            # También limpiar corredor_id dentro del JSON data para que la próxima vez
+            # el cliente lo reciba correcto
+            if corredor_id:
+                c['corredor_id'] = corredor_id
+            elif 'corredor_id' in c and not c['corredor_id']:
+                c['corredor_id'] = None
             conn.execute("""
                 INSERT INTO carpetas
                     (id, nombre, estado, cif, tomador, actividad, corredor_id,
@@ -1580,6 +1622,430 @@ def post_ventanas_sistema():
     finally:
         conn.close()
     return jsonify({'ok': True, 'guardadas': n})
+
+
+# ─── V5: SUCURSALES / COMERCIALES / FLOTAS NUEVAS ─────────────────────────────
+
+@app.route('/sucursales', methods=['GET'])
+@require_key
+def get_sucursales():
+    conn = get_conn()
+    try:
+        rows = conn.execute("SELECT id, nombre, activa FROM sucursales ORDER BY nombre").fetchall()
+        return jsonify([dict(r) for r in rows])
+    finally:
+        conn.close()
+
+
+@app.route('/comerciales', methods=['GET'])
+@require_key
+def get_comerciales():
+    conn = get_conn()
+    try:
+        rows = conn.execute("""
+            SELECT c.id, c.nombre, c.sucursal_id, c.activo, s.nombre AS sucursal
+            FROM comerciales c LEFT JOIN sucursales s ON s.id = c.sucursal_id
+            WHERE c.activo = 1
+            ORDER BY s.nombre, c.nombre
+        """).fetchall()
+        return jsonify([dict(r) for r in rows])
+    finally:
+        conn.close()
+
+
+@app.route('/flotas-v5', methods=['GET'])
+@require_key
+def get_flotas_v5():
+    """Listado completo de flotas V5 con sucursal/corredor/comercial y último estudio."""
+    conn = get_conn()
+    try:
+        rows = conn.execute("""
+            SELECT
+                f.id, f.cif, f.nombre, f.nombre_comercial, f.actividad,
+                f.corredor_id, f.sucursal, f.es_historica,
+                f.comercial_traido_id,
+                co.nombre AS corredor_nombre, co.codigo AS corredor_codigo, co.sucursal AS corredor_sucursal,
+                cm.nombre AS comercial_traido,
+                (SELECT e.estado FROM estudios e
+                 WHERE e.flota_id = f.id ORDER BY e.actualizado_en DESC LIMIT 1) AS estado_actual,
+                (SELECT e.prima_ofertada_total FROM estudios e
+                 WHERE e.flota_id = f.id ORDER BY e.actualizado_en DESC LIMIT 1) AS prima_ofertada,
+                (SELECT e.prima_emitida_total FROM estudios e
+                 WHERE e.flota_id = f.id ORDER BY e.actualizado_en DESC LIMIT 1) AS prima_emitida,
+                (SELECT e.fecha_vcto FROM estudios e
+                 WHERE e.flota_id = f.id ORDER BY e.actualizado_en DESC LIMIT 1) AS fecha_vcto,
+                (SELECT COUNT(*) FROM estudios e WHERE e.flota_id = f.id) AS n_estudios,
+                (SELECT COUNT(*) FROM emisiones em WHERE em.flota_id = f.id) AS n_emisiones,
+                (SELECT em.num_vehiculos FROM emisiones em
+                 WHERE em.flota_id = f.id ORDER BY em.fecha_emision DESC LIMIT 1) AS num_vehiculos_emision,
+                (SELECT em.fecha_emision FROM emisiones em
+                 WHERE em.flota_id = f.id ORDER BY em.fecha_emision DESC LIMIT 1) AS fecha_emision,
+                (SELECT em.fecha_vcto FROM emisiones em
+                 WHERE em.flota_id = f.id ORDER BY em.fecha_emision DESC LIMIT 1) AS fecha_vcto_emision,
+                (SELECT fa.num_vehiculos_fin FROM flota_anual fa
+                 WHERE fa.flota_id = f.id ORDER BY fa.año DESC LIMIT 1) AS num_vehiculos_anual,
+                (SELECT fa.prima_total FROM flota_anual fa
+                 WHERE fa.flota_id = f.id ORDER BY fa.año DESC LIMIT 1) AS prima_anual_total,
+                f.creada_en
+            FROM flotas f
+            LEFT JOIN corredores co ON co.id = f.corredor_id
+            LEFT JOIN comerciales cm ON cm.id = f.comercial_traido_id
+            ORDER BY f.nombre COLLATE NOCASE
+        """).fetchall()
+        return jsonify([dict(r) for r in rows])
+    finally:
+        conn.close()
+
+
+@app.route('/kpis-globales', methods=['GET'])
+@require_key
+def get_kpis_globales():
+    """KPI único para Dashboard, Estudio y v7 Flotas. Calculado desde `carpetas.data` completo.
+
+    Lee: header.fechaVencimiento, trabajo[].prima_referencia, oferta[].oferta_prima_mmt,
+         automaticoVehicles[] para nº vehículos.
+    """
+    import re
+    from datetime import datetime, date, timedelta
+    conn = get_conn()
+    try:
+        rows = conn.execute("""
+            SELECT id, nombre, estado, cif, corredor_id, data, updated_at
+            FROM carpetas
+        """).fetchall()
+
+        def iso(s):
+            if not s: return None
+            s = str(s).strip()
+            if re.match(r'^\d{4}-\d{2}-\d{2}', s):
+                try: return datetime.strptime(s[:10], '%Y-%m-%d').date()
+                except: return None
+            for fmt in ['%d/%m/%Y','%d-%m-%Y','%d/%m/%y']:
+                try: return datetime.strptime(s, fmt).date()
+                except: pass
+            return None
+
+        def num(v):
+            if v is None or v == '': return 0.0
+            try:
+                s = str(v).strip()
+                if ',' in s and '.' in s: s = s.replace('.','').replace(',','.')
+                elif ',' in s: s = s.replace(',','.')
+                return float(s)
+            except: return 0.0
+
+        PRIMA_KEYS_TRABAJO = ['prima_referencia','primaMmt','prima_mmt']
+        PRIMA_KEYS_OFERTA  = ['oferta_prima_mmt','prima_mmt','primaMmt','prima_cliente','prima']
+
+        hoy = date.today()
+        total = len(rows)
+        por_estado = {'CONTRATADA':0,'EN ESTUDIO':0,'OFERTADA':0,'RECHAZADA':0}
+        prima_estudio = prima_ofertada = prima_contratada = 0.0
+        prima_year = 0.0
+        vehiculos_total = 0
+        flotas_con_detalle = 0
+        sin_cif = sin_corredor = 0
+        corredores_usados = set()
+        venc_7 = venc_15 = venc_30 = venc_60 = vencidas = 0
+        emisiones_year = 0
+
+        for r in rows:
+            try: d = json.loads(r['data']) if r['data'] else {}
+            except: d = {}
+            hdr = d.get('header', {}) if isinstance(d.get('header'), dict) else {}
+            estado = (r['estado'] or 'EN ESTUDIO').upper()
+            por_estado[estado] = por_estado.get(estado, 0) + 1
+
+            # Nº vehículos: prioridad trabajo real → automaticoVehicles
+            tr = d.get('trabajo', []) or []
+            av = d.get('automaticoVehicles', []) or []
+            tr_real = [v for v in tr if isinstance(v, dict) and (v.get('matricula') or v.get('Matrícula'))]
+            veh_list = tr_real if tr_real else [v for v in av if isinstance(v, dict) and (v.get('matricula') or v.get('Matrícula'))]
+            nveh = len(veh_list)
+            vehiculos_total += nveh
+            if nveh > 0: flotas_con_detalle += 1
+
+            # Prima: trabajo[].prima_referencia como base; si no, oferta[].oferta_prima_mmt
+            prima = 0.0
+            for v in veh_list:
+                if not isinstance(v, dict): continue
+                for k in PRIMA_KEYS_TRABAJO:
+                    if k in v:
+                        n = num(v[k])
+                        if n > 0: prima += n; break
+            if prima == 0:
+                oferta_arr = d.get('oferta', []) or []
+                for o in oferta_arr:
+                    if not isinstance(o, dict): continue
+                    for k in PRIMA_KEYS_OFERTA:
+                        if k in o:
+                            n = num(o[k])
+                            if n > 0: prima += n; break
+
+            if estado == 'EN ESTUDIO':    prima_estudio    += prima
+            elif estado == 'OFERTADA':    prima_ofertada   += prima
+            elif estado == 'CONTRATADA':  prima_contratada += prima
+
+            # CIF y corredor
+            cif = (r['cif'] or hdr.get('cif','') or '').strip()
+            if not cif: sin_cif += 1
+            if r['corredor_id']:
+                corredores_usados.add(r['corredor_id'])
+            else:
+                sin_corredor += 1
+
+            # Vencimientos
+            fv = iso(hdr.get('fechaVencimiento'))
+            if estado == 'CONTRATADA' and fv:
+                dias = (fv - hoy).days
+                if dias < 0:                     vencidas += 1
+                else:
+                    if dias <= 7:   venc_7 += 1
+                    if dias <= 15:  venc_15 += 1
+                    if dias <= 30:  venc_30 += 1
+                    if dias <= 60:  venc_60 += 1
+                if fv.year == hoy.year:
+                    emisiones_year += 1
+                    prima_year += prima
+
+        offered = por_estado.get('CONTRATADA',0) + por_estado.get('OFERTADA',0) + por_estado.get('RECHAZADA',0)
+        ratio = round(por_estado.get('CONTRATADA',0)/offered*100) if offered else 0
+        tasa_total = round(por_estado.get('CONTRATADA',0)/total*100) if total else 0
+
+        return jsonify({
+            'total_flotas': total,
+            'por_estado': por_estado,
+            'vehiculos_total': vehiculos_total,
+            'flotas_con_detalle': flotas_con_detalle,
+            'corredores_activos': len(corredores_usados),
+            'sin_cif': sin_cif,
+            'sin_corredor': sin_corredor,
+            'primas': {
+                'en_estudio': round(prima_estudio),
+                'ofertada_pendiente': round(prima_ofertada),
+                'contratada_total': round(prima_contratada),
+                'emitida_year': round(prima_year),
+                'emisiones_year': emisiones_year,
+            },
+            'renovaciones': {
+                '7d': venc_7, '15d': venc_15, '30d': venc_30, '60d': venc_60,
+                'vencidas': vencidas,
+            },
+            'ratios': {
+                'tasa_contratacion_total': tasa_total,
+                'ratio_contratacion_cerradas': ratio,
+            },
+        })
+    finally:
+        conn.close()
+
+
+@app.route('/carpetas-summary', methods=['GET'])
+@require_key
+def get_carpetas_summary():
+    """Resumen ligero por carpeta para v7 Flotas. UNA sola fuente de verdad: tabla carpetas.
+
+    Campos: id, nombre, cif, actividad, corredor_id, estado, fecha_vcto (ISO),
+            num_vehiculos, prima_total (suma de trabajo[].prima_referencia).
+    """
+    import re
+    from datetime import datetime
+    conn = get_conn()
+    try:
+        rows = conn.execute("""
+            SELECT id, nombre, estado, cif, tomador, actividad, corredor_id, updated_at, data
+            FROM carpetas ORDER BY updated_at DESC
+        """).fetchall()
+
+        def iso(s):
+            if not s: return ''
+            s = str(s).strip()
+            if re.match(r'^\d{4}-\d{2}-\d{2}', s): return s[:10]
+            for fmt in ['%d/%m/%Y','%d-%m-%Y','%Y/%m/%d','%d/%m/%y']:
+                try: return datetime.strptime(s, fmt).strftime('%Y-%m-%d')
+                except: pass
+            return ''
+
+        PRIMA_KEYS = ['prima_referencia','primaMmt','prima_mmt','primaMMT','primaOfertada','primaCliente','primaFinal','prima']
+
+        def num(v):
+            if v is None or v == '': return 0.0
+            try:
+                s = str(v).strip()
+                if ',' in s and '.' in s: s = s.replace('.','').replace(',','.')
+                elif ',' in s: s = s.replace(',','.')
+                return float(s)
+            except: return 0.0
+
+        out = []
+        for r in rows:
+            try: d = json.loads(r['data']) if r['data'] else {}
+            except: d = {}
+            header = d.get('header', {}) if isinstance(d.get('header'), dict) else {}
+            trabajo = d.get('trabajo', []) or []
+            automaticos = d.get('automaticoVehicles', []) or []
+            # nº vehículos: primero trabajo, si vacío usar automaticoVehicles
+            vehs = trabajo if any(isinstance(v, dict) and (v.get('matricula') or v.get('Matrícula')) for v in trabajo) else automaticos
+            # suma primas
+            total_prima = 0.0
+            for v in vehs:
+                if not isinstance(v, dict): continue
+                for k in PRIMA_KEYS:
+                    if k in v:
+                        n = num(v[k])
+                        if n > 0: total_prima += n; break
+            out.append({
+                'id': r['id'],
+                'nombre': r['nombre'] or '',
+                'cif': r['cif'] or header.get('cif','') or '',
+                'actividad': r['actividad'] or header.get('actividad','') or '',
+                'corredor_id': r['corredor_id'],
+                'estado': (r['estado'] or 'EN ESTUDIO').upper(),
+                'fecha_vcto': iso(header.get('fechaVencimiento','')),
+                'num_vehiculos': sum(1 for v in vehs if isinstance(v, dict) and (v.get('matricula') or v.get('Matrícula'))),
+                'prima_total': round(total_prima, 2),
+                'actualizada': r['updated_at'] or '',
+            })
+        return jsonify(out)
+    finally:
+        conn.close()
+
+
+@app.route('/flotas-v5-batch', methods=['GET'])
+@require_key
+def get_flotas_v5_estudios_batch():
+    """Todos los estudios de todas las flotas en un solo payload. Para pintar historia en v7."""
+    conn = get_conn()
+    try:
+        rows = conn.execute("""
+            SELECT e.flota_id, e.id, e.estado, e.fecha_vcto,
+                   e.prima_ofertada_total, e.prima_emitida_total,
+                   e.actualizado_en, e.creado_en, e.comercial_id,
+                   cm.nombre AS comercial_nombre
+            FROM estudios e
+            LEFT JOIN comerciales cm ON cm.id = e.comercial_id
+            ORDER BY e.flota_id, e.actualizado_en DESC
+        """).fetchall()
+        em = conn.execute("""
+            SELECT em.flota_id, em.id, em.estudio_id, em.numero_poliza,
+                   em.fecha_emision, em.fecha_vcto, em.prima_emitida, em.num_vehiculos
+            FROM emisiones em
+            ORDER BY em.flota_id, em.fecha_emision DESC
+        """).fetchall()
+        anual = conn.execute("""
+            SELECT flota_id, año, num_vehiculos_inicio, num_vehiculos_fin,
+                   prima_total, siniestros_coste
+            FROM flota_anual
+            ORDER BY flota_id, año DESC
+        """).fetchall()
+        return jsonify({
+            'estudios': [dict(r) for r in rows],
+            'emisiones': [dict(r) for r in em],
+            'anuales':   [dict(r) for r in anual],
+        })
+    finally:
+        conn.close()
+
+
+@app.route('/flotas-v5/<fid>', methods=['GET'])
+@require_key
+def get_flota_v5_detalle(fid):
+    """Detalle completo de una flota V5 con todos sus estudios y emisiones."""
+    conn = get_conn()
+    try:
+        flota = conn.execute("""
+            SELECT f.*,
+                co.nombre AS corredor_nombre, co.codigo AS corredor_codigo,
+                cm.nombre AS comercial_traido
+            FROM flotas f
+            LEFT JOIN corredores co ON co.id = f.corredor_id
+            LEFT JOIN comerciales cm ON cm.id = f.comercial_traido_id
+            WHERE f.id = ?
+        """, (fid,)).fetchone()
+        if not flota:
+            return jsonify({'error': 'Flota no encontrada'}), 404
+        estudios = conn.execute("""
+            SELECT e.*, cm.nombre AS comercial_nombre
+            FROM estudios e
+            LEFT JOIN comerciales cm ON cm.id = e.comercial_id
+            WHERE e.flota_id = ? ORDER BY e.actualizado_en DESC
+        """, (fid,)).fetchall()
+        emisiones = conn.execute("""
+            SELECT * FROM emisiones WHERE flota_id = ? ORDER BY fecha_emision DESC
+        """, (fid,)).fetchall()
+        return jsonify({
+            'flota': dict(flota),
+            'estudios': [dict(e) for e in estudios],
+            'emisiones': [dict(em) for em in emisiones],
+        })
+    finally:
+        conn.close()
+
+
+@app.route('/flotas-v5/kpis', methods=['GET'])
+@require_key
+def get_flotas_v5_kpis():
+    """KPIs para la pantalla de flotas v7: total, en curso, ratio, prima emitida año."""
+    conn = get_conn()
+    try:
+        def q1(sql, *args):
+            return conn.execute(sql, args).fetchone()[0]
+
+        # Estado actual = del último estudio por flota
+        total = q1("SELECT COUNT(*) FROM flotas")
+        en_estudio = q1("""
+            SELECT COUNT(DISTINCT f.id) FROM flotas f
+            WHERE (SELECT e.estado FROM estudios e WHERE e.flota_id=f.id ORDER BY e.actualizado_en DESC LIMIT 1) = 'EN ESTUDIO'
+        """)
+        ofertadas = q1("""
+            SELECT COUNT(DISTINCT f.id) FROM flotas f
+            WHERE (SELECT e.estado FROM estudios e WHERE e.flota_id=f.id ORDER BY e.actualizado_en DESC LIMIT 1) = 'OFERTADA'
+        """)
+        contratadas = q1("""
+            SELECT COUNT(DISTINCT f.id) FROM flotas f
+            WHERE (SELECT e.estado FROM estudios e WHERE e.flota_id=f.id ORDER BY e.actualizado_en DESC LIMIT 1) = 'CONTRATADA'
+        """)
+        rechazadas = q1("""
+            SELECT COUNT(DISTINCT f.id) FROM flotas f
+            WHERE (SELECT e.estado FROM estudios e WHERE e.flota_id=f.id ORDER BY e.actualizado_en DESC LIMIT 1) = 'RECHAZADA'
+        """)
+        sin_cif = q1("SELECT COUNT(*) FROM flotas WHERE cif IS NULL OR cif = ''")
+        prima_ofertada_curso = conn.execute("""
+            SELECT COALESCE(SUM(e.prima_ofertada_total), 0) FROM estudios e
+            WHERE e.flota_id IN (
+                SELECT f.id FROM flotas f
+                WHERE (SELECT e2.estado FROM estudios e2 WHERE e2.flota_id=f.id ORDER BY e2.actualizado_en DESC LIMIT 1)
+                      IN ('EN ESTUDIO','OFERTADA')
+            )
+            AND e.actualizado_en = (
+                SELECT MAX(actualizado_en) FROM estudios WHERE flota_id = e.flota_id
+            )
+        """).fetchone()[0]
+
+        prima_emitida_total = q1("SELECT COALESCE(SUM(prima_emitida), 0) FROM emisiones")
+        total_corredores = q1("SELECT COUNT(*) FROM corredores")
+        total_comerciales = q1("SELECT COUNT(*) FROM comerciales WHERE activo = 1")
+
+        # Ratio contratación = contratadas / (contratadas + ofertadas + rechazadas)
+        base_ratio = contratadas + ofertadas + rechazadas
+        ratio = round(100 * contratadas / base_ratio, 1) if base_ratio > 0 else 0
+
+        return jsonify({
+            'total': total,
+            'en_estudio': en_estudio,
+            'ofertadas': ofertadas,
+            'contratadas': contratadas,
+            'rechazadas': rechazadas,
+            'sin_cif': sin_cif,
+            'en_curso': en_estudio + ofertadas,
+            'prima_ofertada_en_curso': prima_ofertada_curso,
+            'prima_emitida_total': prima_emitida_total,
+            'total_corredores': total_corredores,
+            'total_comerciales': total_comerciales,
+            'ratio_contratacion': ratio,
+        })
+    finally:
+        conn.close()
 
 
 # ─── Ping ─────────────────────────────────────────────────────────────────────

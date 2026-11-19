@@ -307,6 +307,89 @@ CREATE TABLE IF NOT EXISTS ventanas_sistema (
     updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- MODELO V5: flotas / estudios / emisiones / flota_anual
+-- Añadido 16/11/2026. Coexiste con `carpetas` (legacy) hasta que termine la migración.
+-- Ver: project_refactor_modelo_pendiente_nov16.md
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- FLOTAS: la empresa real (una por CIF). Dato duro: existe aunque no haya estudio.
+CREATE TABLE IF NOT EXISTS flotas (
+    id                TEXT PRIMARY KEY,
+    cif               TEXT NOT NULL,
+    nombre            TEXT NOT NULL,
+    nombre_comercial  TEXT NOT NULL DEFAULT '',
+    actividad         TEXT NOT NULL DEFAULT '',
+    corredor_id       TEXT REFERENCES corredores(id),
+    sucursal          TEXT NOT NULL DEFAULT '',
+    es_historica      INTEGER NOT NULL DEFAULT 0,
+    creada_en         TEXT NOT NULL DEFAULT (datetime('now')),
+    actualizada_en    TEXT NOT NULL DEFAULT (datetime('now'))
+    -- Sin UNIQUE(cif) — detector en frontend por si acaso hay edge cases
+);
+CREATE INDEX IF NOT EXISTS idx_flotas_corredor ON flotas(corredor_id);
+CREATE INDEX IF NOT EXISTS idx_flotas_sucursal ON flotas(sucursal);
+CREATE INDEX IF NOT EXISTS idx_flotas_cif      ON flotas(cif);
+
+-- ESTUDIOS: proceso de trabajo (N por flota). Rematación anual, variantes, etc.
+CREATE TABLE IF NOT EXISTS estudios (
+    id                     TEXT PRIMARY KEY,
+    flota_id               TEXT NOT NULL REFERENCES flotas(id) ON DELETE CASCADE,
+    nombre                 TEXT NOT NULL DEFAULT '',
+    estado                 TEXT NOT NULL DEFAULT 'EN ESTUDIO',  -- EN ESTUDIO/ESTUDIADA/OFERTADA/CONTRATADA/RECHAZADA
+    fecha_vcto             TEXT,
+    prima_ofertada_total   REAL NOT NULL DEFAULT 0,
+    prima_emitida_total    REAL NOT NULL DEFAULT 0,
+    coberturas_json        TEXT NOT NULL DEFAULT '[]',          -- desglose por tipología
+    motivo_rechazo         TEXT NOT NULL DEFAULT '',
+    data                   TEXT NOT NULL DEFAULT '{{}}',        -- JSON workspace (header/original/trabajo/sinco/oferta/...)
+    creado_por             TEXT NOT NULL DEFAULT '',
+    creado_en              TEXT NOT NULL DEFAULT (datetime('now')),
+    actualizado_en         TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_estudios_flota   ON estudios(flota_id);
+CREATE INDEX IF NOT EXISTS idx_estudios_estado  ON estudios(estado);
+CREATE INDEX IF NOT EXISTS idx_estudios_vcto    ON estudios(fecha_vcto);
+CREATE INDEX IF NOT EXISTS idx_estudios_updated ON estudios(actualizado_en DESC);
+
+-- EMISIONES: pólizas efectivamente contratadas. 1 por estudio CONTRATADA.
+CREATE TABLE IF NOT EXISTS emisiones (
+    id              TEXT PRIMARY KEY,
+    flota_id        TEXT NOT NULL REFERENCES flotas(id),
+    estudio_id      TEXT REFERENCES estudios(id),  -- NULL si viene de histórica
+    numero_poliza   TEXT NOT NULL DEFAULT '',
+    id_cliente_mmt  TEXT NOT NULL DEFAULT '',
+    id_flota_mmt    TEXT NOT NULL DEFAULT '',
+    fecha_emision   TEXT,
+    fecha_vcto      TEXT,                           -- fin vigencia
+    prima_emitida   REAL NOT NULL DEFAULT 0,
+    num_vehiculos   INTEGER NOT NULL DEFAULT 0,
+    data            TEXT NOT NULL DEFAULT '{{}}',  -- vehículos emitidos, comunes, etc.
+    creado_en       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_emisiones_flota   ON emisiones(flota_id);
+CREATE INDEX IF NOT EXISTS idx_emisiones_estudio ON emisiones(estudio_id);
+CREATE INDEX IF NOT EXISTS idx_emisiones_vcto    ON emisiones(fecha_vcto);
+
+-- FLOTA_ANUAL: cuenta de resultados por año. Sirve para históricas pre-ORION y para años cerrados.
+CREATE TABLE IF NOT EXISTS flota_anual (
+    id                   TEXT PRIMARY KEY,
+    flota_id             TEXT NOT NULL REFERENCES flotas(id) ON DELETE CASCADE,
+    año                  INTEGER NOT NULL,
+    num_vehiculos_inicio INTEGER NOT NULL DEFAULT 0,
+    num_vehiculos_fin    INTEGER NOT NULL DEFAULT 0,
+    prima_total          REAL NOT NULL DEFAULT 0,
+    siniestros_num       INTEGER NOT NULL DEFAULT 0,
+    siniestros_coste     REAL NOT NULL DEFAULT 0,
+    comisiones           REAL NOT NULL DEFAULT 0,
+    gastos_otros         REAL NOT NULL DEFAULT 0,
+    margen               REAL NOT NULL DEFAULT 0,       -- prima - siniestros - comisiones - gastos
+    fuente               TEXT NOT NULL DEFAULT 'manual', -- manual / emision / importado
+    notas                TEXT NOT NULL DEFAULT '',
+    UNIQUE(flota_id, año)
+);
+CREATE INDEX IF NOT EXISTS idx_flota_anual_flota ON flota_anual(flota_id);
+
 INSERT OR IGNORE INTO usuarios (id, username, password_hash, rol) VALUES
   ('usr_titan',   'TITAN',   '{_HASH_DEFAULT}', 'usuario'),
   ('usr_carlos',  'CARLOS',  '{_HASH_DEFAULT}', 'usuario'),
@@ -483,22 +566,31 @@ def migrate_db():
             for col, typedef in new_cols:
                 if not _column_exists(conn, 'carpetas', col):
                     conn.execute(f"ALTER TABLE carpetas ADD COLUMN {col} {typedef}")
-            rows = conn.execute("SELECT id, data FROM carpetas WHERE data IS NOT NULL AND data != '{}'").fetchall()
+            # BUG HISTÓRICO: antes se sobreescribía corredor_id desde data.corredor_id (JSON) en
+            # cada arranque, revirtiendo cualquier dedupe/reasignación manual de la columna.
+            # Fix 19/11: solo poblar corredor_id si la columna está VACÍA; la columna es la
+            # fuente de verdad una vez poblada.
+            rows = conn.execute("SELECT id, data, corredor_id FROM carpetas WHERE data IS NOT NULL AND data != '{}'").fetchall()
             for row in rows:
                 try:
                     d = json.loads(row['data'] or '{}')
                     h = d.get('header') or {}
-                    conn.execute("""
-                        UPDATE carpetas SET estado=?, cif=?, tomador=?, actividad=?, corredor_id=?
-                        WHERE id=?
-                    """, [
-                        d.get('estado', 'EN ESTUDIO'),
-                        h.get('cif') or d.get('cif', ''),
-                        h.get('tomador') or d.get('tomador', ''),
-                        h.get('actividad') or d.get('actividad', ''),
-                        d.get('corredor_id') or None,
-                        row['id'],
-                    ])
+                    nuevo_cor = d.get('corredor_id') or None
+                    # Solo actualizar corredor_id si la columna está vacía
+                    if row['corredor_id']:
+                        conn.execute("""UPDATE carpetas SET estado=?, cif=?, tomador=?, actividad=? WHERE id=?""",
+                                     [d.get('estado','EN ESTUDIO'),
+                                      h.get('cif') or d.get('cif',''),
+                                      h.get('tomador') or d.get('tomador',''),
+                                      h.get('actividad') or d.get('actividad',''),
+                                      row['id']])
+                    else:
+                        conn.execute("""UPDATE carpetas SET estado=?, cif=?, tomador=?, actividad=?, corredor_id=? WHERE id=?""",
+                                     [d.get('estado','EN ESTUDIO'),
+                                      h.get('cif') or d.get('cif',''),
+                                      h.get('tomador') or d.get('tomador',''),
+                                      h.get('actividad') or d.get('actividad',''),
+                                      nuevo_cor, row['id']])
                 except Exception:
                     pass
 
