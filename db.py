@@ -351,15 +351,17 @@ CREATE INDEX IF NOT EXISTS idx_facturas_carpeta ON facturas(carpeta_id, creado_e
 -- Una sola emisión ACTIVA por flota + tomador + serie + vencimiento
 CREATE UNIQUE INDEX IF NOT EXISTS ux_facturas_activa ON facturas(carpeta_id, tomador_id, serie, vencimiento) WHERE estado = 'emitida';
 
--- Recibos de la compañía incluidos en cada factura. Un recibo solo puede estar en UNA factura activa.
+-- Recibos de la compañía incluidos en cada factura. Un recibo solo puede estar en UNA factura activa de cada
+-- tipo (serie): la regularización incluye también los recibos de la emisión, así que el control es por tipo.
+-- El índice único (recibo, serie) se crea en la migración, porque la columna `serie` se añadió después.
 CREATE TABLE IF NOT EXISTS facturas_recibos (
     recibo      TEXT NOT NULL,
     factura_id  TEXT NOT NULL,
     carpeta_id  TEXT NOT NULL DEFAULT '',
     activo      INTEGER NOT NULL DEFAULT 1,
+    serie       TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (recibo, factura_id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS ux_facturas_recibo_activo ON facturas_recibos(recibo) WHERE activo = 1;
 CREATE INDEX IF NOT EXISTS idx_facturas_recibos_factura ON facturas_recibos(factura_id);
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -752,6 +754,15 @@ def migrate_db():
             for col in ('ok_min', 'ok_max'):
                 if col not in vcols:
                     conn.execute(f"ALTER TABLE ventanas_sistema ADD COLUMN {col} INTEGER")
+
+        # ── facturas_recibos: el control de doble facturación pasa a ser por tipo (emisión / regularización) ──
+        if _table_exists(conn, 'facturas_recibos'):
+            fcols = {r[1] for r in conn.execute("PRAGMA table_info(facturas_recibos)").fetchall()}
+            if 'serie' not in fcols:
+                conn.execute("ALTER TABLE facturas_recibos ADD COLUMN serie TEXT NOT NULL DEFAULT ''")
+                conn.execute("UPDATE facturas_recibos SET serie = COALESCE((SELECT f.serie FROM facturas f WHERE f.id = facturas_recibos.factura_id), '')")
+            conn.execute("DROP INDEX IF EXISTS ux_facturas_recibo_activo")
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_facturas_recibo_serie_activo ON facturas_recibos(recibo, serie) WHERE activo = 1")
 
         conn.commit()
         print("[db] Migración completada")

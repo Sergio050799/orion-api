@@ -252,8 +252,14 @@ def post_carpetas():
 
         elif action == 'delete':
             cid = body.get('id')
+            previa = conn.execute("SELECT nombre, estado FROM carpetas WHERE id=?", [cid]).fetchone()
             conn.execute("DELETE FROM sesiones_activas WHERE carpeta_id=?", [cid])
             conn.execute("DELETE FROM carpetas WHERE id=?", [cid])
+            if previa:
+                # Queda constancia de quién borra cada flota (también las contratadas)
+                conn.execute("INSERT INTO audit_log (usuario, accion, detalle, ip, ts) VALUES (?, ?, ?, ?, ?)",
+                             [str(body.get('usuario') or '')[:80], 'flota_borrar', f"{previa['nombre']} · estaba {previa['estado']} · id {cid}",
+                              request.remote_addr or '', now_iso()])
             conn.commit()
 
         elif action == 'replaceAll':
@@ -1699,6 +1705,30 @@ def _fact_usuario(body):
     return str((body or {}).get('usuario') or '')[:80]
 
 
+@app.route('/facturacion/resumen', methods=['GET'])
+@require_key
+def facturacion_resumen():
+    """Portada de Facturación: por flota, sus datos de ciclo y lo emitido (solo documentos activos)."""
+    conn = get_conn()
+    try:
+        flotas = {}
+        for r in conn.execute("SELECT carpeta_id, data FROM facturacion_config").fetchall():
+            try:
+                c = json.loads(r['data'] or '{}')
+            except Exception:
+                c = {}
+            cor = c.get('corredor') or {}
+            flotas[r['carpeta_id']] = {'config': {'inicioCiclo': c.get('inicioCiclo', ''), 'periodicidad': c.get('periodicidad', ''),
+                                                 'comision': cor.get('comision', 0), 'completa': bool(c.get('inicioCiclo') and c.get('periodicidad') and cor.get('cif') and cor.get('domicilio'))},
+                                       'documentos': []}
+        for r in conn.execute("SELECT id, carpeta_id, serie, vencimiento, numero, recibos, neta, impuesto, importe, comision, liquido, texto_periodo, creado_en, creado_por FROM facturas WHERE estado='emitida' ORDER BY creado_en DESC").fetchall():
+            f = flotas.setdefault(r['carpeta_id'], {'config': None, 'documentos': []})
+            f['documentos'].append({k: r[k] for k in r.keys() if k != 'carpeta_id'})
+        return jsonify({'flotas': flotas})
+    finally:
+        conn.close()
+
+
 @app.route('/facturacion/<carpeta_id>', methods=['GET'])
 @require_key
 def facturacion_get(carpeta_id):
@@ -1737,8 +1767,8 @@ def facturacion_config_put(carpeta_id):
         conn.close()
 
 
-def _fact_ya_facturados(conn, recibos):
-    """Recibos de la compañía que ya están en una factura activa (de cualquier flota)."""
+def _fact_ya_facturados(conn, recibos, serie):
+    """Recibos de la compañía que ya están en una factura activa del mismo tipo (de cualquier flota)."""
     ya = []
     recibos = [str(r) for r in recibos if str(r).strip()]
     for i in range(0, len(recibos), 500):
@@ -1746,7 +1776,7 @@ def _fact_ya_facturados(conn, recibos):
         q = ",".join("?" * len(trozo))
         for r in conn.execute(f"""SELECT fr.recibo, f.id AS factura_id, f.numero, f.flota_nombre, f.tomador_nombre, f.creado_en, f.creado_por
                                    FROM facturas_recibos fr JOIN facturas f ON f.id = fr.factura_id
-                                   WHERE fr.activo = 1 AND fr.recibo IN ({q})""", trozo).fetchall():
+                                   WHERE fr.activo = 1 AND fr.serie = ? AND fr.recibo IN ({q})""", [serie] + trozo).fetchall():
             ya.append(dict(r))
     return ya
 
@@ -1754,11 +1784,11 @@ def _fact_ya_facturados(conn, recibos):
 @app.route('/facturacion/<carpeta_id>/comprobar', methods=['POST'])
 @require_key
 def facturacion_comprobar(carpeta_id):
-    """{ recibos: [...], sha256: [...] } → recibos ya facturados y archivos ya usados en una emisión activa."""
+    """{ serie, recibos: [...], sha256: [...] } → recibos ya facturados en ese tipo y archivos ya usados."""
     body = request.get_json(silent=True) or {}
     conn = get_conn()
     try:
-        ya = _fact_ya_facturados(conn, (body.get('recibos') or [])[:20000])
+        ya = _fact_ya_facturados(conn, (body.get('recibos') or [])[:20000], str(body.get('serie') or ''))
         archivos = []
         for h in (body.get('sha256') or [])[:10]:
             for r in conn.execute("SELECT numero, flota_nombre, tomador_nombre, creado_en, archivo FROM facturas WHERE sha256=? AND estado='emitida'", [str(h)]).fetchall():
@@ -1788,11 +1818,13 @@ def facturacion_emitir(carpeta_id):
     conn = get_conn()
     try:
         conn.execute("BEGIN IMMEDIATE")
-        todos = [str(r) for d in docs for r in d['recibos']]
-        if len(set(todos)) != len(todos):
-            conn.rollback()
-            return jsonify({'error': 'Hay recibos repetidos entre los documentos'}), 400
-        ya = _fact_ya_facturados(conn, todos)
+        ya = []
+        for serie in ('RC', 'RW'):
+            del_tipo = [str(r) for d in docs if d['serie'] == serie for r in d['recibos']]
+            if len(set(del_tipo)) != len(del_tipo):
+                conn.rollback()
+                return jsonify({'error': 'Hay recibos repetidos entre los documentos'}), 400
+            ya += _fact_ya_facturados(conn, del_tipo, serie)
         if ya:
             conn.rollback()
             return jsonify({'error': 'Hay recibos que ya están facturados', 'ya_facturados': ya}), 409
@@ -1802,7 +1834,7 @@ def facturacion_emitir(carpeta_id):
                                   [carpeta_id, str(t.get('id', '')), d['serie'], d['vencimiento']]).fetchone()
             if activa:
                 conn.rollback()
-                return jsonify({'error': f"Ya hay un {activa['numero']} emitido para este tomador y vencimiento. Anúlalo antes de emitir otro."}), 409
+                return jsonify({'error': f"Ya hay un recibo de ese tipo ({activa['numero']}) emitido para este tomador y periodo. Bórralo o anúlalo en el histórico antes de emitir otro."}), 409
             tot = d.get('totales') or {}
             conn.execute("""INSERT INTO facturas (id, carpeta_id, flota_nombre, tomador_id, tomador_nombre, tomador_cif, serie, vencimiento, numero,
                                 recibos, vehiculos, neta, impuesto, importe, comision, liquido, pct_comision, texto_periodo, archivo, sha256, data, creado_por, creado_en)
@@ -1813,8 +1845,8 @@ def facturacion_emitir(carpeta_id):
                           float(tot.get('importe') or 0), float(tot.get('comision') or 0), float(tot.get('liquido') or 0), float(d.get('pct_comision') or 0),
                           str(d.get('texto_periodo', '')), str(d.get('archivo', ''))[:200], str(d.get('sha256', ''))[:80],
                           json.dumps(d.get('data') or {}, ensure_ascii=False), usuario, now_iso()])
-            conn.executemany("INSERT INTO facturas_recibos (recibo, factura_id, carpeta_id, activo) VALUES (?,?,?,1)",
-                             [(str(r), str(d['id']), carpeta_id) for r in d['recibos']])
+            conn.executemany("INSERT INTO facturas_recibos (recibo, factura_id, carpeta_id, activo, serie) VALUES (?,?,?,1,?)",
+                             [(str(r), str(d['id']), carpeta_id, d['serie']) for r in d['recibos']])
             conn.execute("INSERT INTO audit_log (usuario, accion, detalle, ip, ts) VALUES (?, ?, ?, ?, ?)",
                          [usuario, 'facturacion_emitir',
                           f"{d['numero']} · {d.get('flota', '')} · {t.get('nombre', '')} · {int(tot.get('recibos') or 0)} recibos · {float(tot.get('importe') or 0):.2f} €",
@@ -1869,6 +1901,28 @@ def facturacion_factura_anular(factura_id):
         conn.execute("UPDATE facturas_recibos SET activo=0 WHERE factura_id=?", [factura_id])
         conn.execute("INSERT INTO audit_log (usuario, accion, detalle, ip, ts) VALUES (?, ?, ?, ?, ?)",
                      [_fact_usuario(body), 'facturacion_anular', f"{r['numero']} · {r['flota_nombre']} · {motivo}", request.remote_addr or '', now_iso()])
+        conn.commit()
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+
+@app.route('/facturacion/factura/<factura_id>/borrar', methods=['POST'])
+@require_key
+def facturacion_factura_borrar(factura_id):
+    """Borra del todo un recibo emitido o anulado: desaparece del histórico y deja de sumar. Queda en el registro de auditoría."""
+    body = request.get_json(silent=True) or {}
+    conn = get_conn()
+    try:
+        r = conn.execute("SELECT numero, flota_nombre, tomador_nombre, estado, importe, recibos FROM facturas WHERE id=?", [factura_id]).fetchone()
+        if not r:
+            return jsonify({'error': 'No existe'}), 404
+        conn.execute("DELETE FROM facturas_recibos WHERE factura_id=?", [factura_id])
+        conn.execute("DELETE FROM facturas WHERE id=?", [factura_id])
+        conn.execute("INSERT INTO audit_log (usuario, accion, detalle, ip, ts) VALUES (?, ?, ?, ?, ?)",
+                     [_fact_usuario(body), 'facturacion_borrar',
+                      f"{r['numero']} · {r['flota_nombre']} · {r['tomador_nombre']} · {r['recibos']} recibos · {r['importe']:.2f} € · estaba {r['estado']}",
+                      request.remote_addr or '', now_iso()])
         conn.commit()
         return jsonify({'ok': True})
     finally:
