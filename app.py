@@ -1663,18 +1663,22 @@ def post_ventanas_sistema():
                 except Exception:
                     return None
             fmin, fmax, mmin, mmax = ent('fabMin'), ent('fabMax'), ent('matMin'), ent('matMax')
-            if not (fmin and fmax) and not (mmin and mmax):
+            # okMin/okMax: años de fabricación que el sistema ACEPTÓ para esta ID (se amplían, nunca se estrechan)
+            okmin, okmax = ent('okMin'), ent('okMax')
+            if not (fmin and fmax) and not (mmin and mmax) and not (okmin and okmax):
                 continue
             conn.execute("""
-                INSERT INTO ventanas_sistema (id_veh, fab_min, fab_max, mat_min, mat_max, fuente, updated_by, updated_at)
-                VALUES (?,?,?,?,?,?,?,?)
+                INSERT INTO ventanas_sistema (id_veh, fab_min, fab_max, mat_min, mat_max, ok_min, ok_max, fuente, updated_by, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(id_veh) DO UPDATE SET
                     fab_min = CASE WHEN excluded.fab_min > 0 THEN excluded.fab_min ELSE fab_min END,
                     fab_max = CASE WHEN excluded.fab_max > 0 THEN excluded.fab_max ELSE fab_max END,
                     mat_min = COALESCE(excluded.mat_min, mat_min),
                     mat_max = COALESCE(excluded.mat_max, mat_max),
+                    ok_min = CASE WHEN excluded.ok_min IS NULL THEN ok_min WHEN ok_min IS NULL THEN excluded.ok_min ELSE MIN(ok_min, excluded.ok_min) END,
+                    ok_max = CASE WHEN excluded.ok_max IS NULL THEN ok_max WHEN ok_max IS NULL THEN excluded.ok_max ELSE MAX(ok_max, excluded.ok_max) END,
                     fuente = CASE WHEN excluded.fuente <> '' THEN excluded.fuente ELSE fuente END, updated_by = excluded.updated_by, updated_at = excluded.updated_at
-            """, [vid, fmin or 0, fmax or 0, mmin, mmax, str(v.get('fuente', ''))[:120], usuario, now_iso()])
+            """, [vid, fmin or 0, fmax or 0, mmin, mmax, okmin, okmax, str(v.get('fuente', ''))[:120], usuario, now_iso()])
             n += 1
         conn.commit()
     finally:

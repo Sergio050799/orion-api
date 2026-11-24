@@ -690,6 +690,14 @@ def migrate_db():
         # ── Tarifa del motor de primas (primas_base + primas_suplementos) ────
         _migrar_tarifa(conn)
 
+        # ── ventanas_sistema: años ACEPTADOS por el sistema de emisión (además de los rangos de sus errores) ──
+        # ok_min/ok_max = menor y mayor año de fabricación que el sistema ha aceptado para esa ID en una emisión real.
+        if _table_exists(conn, 'ventanas_sistema'):
+            vcols = {r[1] for r in conn.execute("PRAGMA table_info(ventanas_sistema)").fetchall()}
+            for col in ('ok_min', 'ok_max'):
+                if col not in vcols:
+                    conn.execute(f"ALTER TABLE ventanas_sistema ADD COLUMN {col} INTEGER")
+
         conn.commit()
         print("[db] Migración completada")
     finally:
