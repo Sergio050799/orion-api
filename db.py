@@ -307,6 +307,61 @@ CREATE TABLE IF NOT EXISTS ventanas_sistema (
     updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- ── FACTURACIÓN DE FLOTAS (recibos RC / RW) ─────────────────────────────────
+-- Datos de facturación de cada flota: ciclo, periodicidad, corredor impreso, tomadores y sus alias (JSON).
+CREATE TABLE IF NOT EXISTS facturacion_config (
+    carpeta_id  TEXT PRIMARY KEY,
+    data        TEXT NOT NULL DEFAULT '{{}}',
+    updated_by  TEXT NOT NULL DEFAULT '',
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Un recibo de cobro emitido (RC o RW) de una flota y un tomador para un vencimiento de fracción.
+-- `numero` es el visible (RC01102026) y puede repetirse entre flotas; `id` es el identificador interno único.
+CREATE TABLE IF NOT EXISTS facturas (
+    id              TEXT PRIMARY KEY,
+    carpeta_id      TEXT NOT NULL,
+    flota_nombre    TEXT NOT NULL DEFAULT '',
+    tomador_id      TEXT NOT NULL DEFAULT '',
+    tomador_nombre  TEXT NOT NULL DEFAULT '',
+    tomador_cif     TEXT NOT NULL DEFAULT '',
+    serie           TEXT NOT NULL,
+    vencimiento     TEXT NOT NULL,
+    numero          TEXT NOT NULL,
+    estado          TEXT NOT NULL DEFAULT 'emitida',
+    recibos         INTEGER NOT NULL DEFAULT 0,
+    vehiculos       INTEGER NOT NULL DEFAULT 0,
+    neta            REAL NOT NULL DEFAULT 0,
+    impuesto        REAL NOT NULL DEFAULT 0,
+    importe         REAL NOT NULL DEFAULT 0,
+    comision        REAL NOT NULL DEFAULT 0,
+    liquido         REAL NOT NULL DEFAULT 0,
+    pct_comision    REAL NOT NULL DEFAULT 0,
+    texto_periodo   TEXT NOT NULL DEFAULT '',
+    archivo         TEXT NOT NULL DEFAULT '',
+    sha256          TEXT NOT NULL DEFAULT '',
+    data            TEXT NOT NULL DEFAULT '{{}}',
+    creado_por      TEXT NOT NULL DEFAULT '',
+    creado_en       TEXT NOT NULL DEFAULT (datetime('now')),
+    anulada_por     TEXT,
+    anulada_en      TEXT,
+    motivo_anulacion TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_facturas_carpeta ON facturas(carpeta_id, creado_en DESC);
+-- Una sola emisión ACTIVA por flota + tomador + serie + vencimiento
+CREATE UNIQUE INDEX IF NOT EXISTS ux_facturas_activa ON facturas(carpeta_id, tomador_id, serie, vencimiento) WHERE estado = 'emitida';
+
+-- Recibos de la compañía incluidos en cada factura. Un recibo solo puede estar en UNA factura activa.
+CREATE TABLE IF NOT EXISTS facturas_recibos (
+    recibo      TEXT NOT NULL,
+    factura_id  TEXT NOT NULL,
+    carpeta_id  TEXT NOT NULL DEFAULT '',
+    activo      INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (recibo, factura_id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_facturas_recibo_activo ON facturas_recibos(recibo) WHERE activo = 1;
+CREATE INDEX IF NOT EXISTS idx_facturas_recibos_factura ON facturas_recibos(factura_id);
+
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- MODELO V5: flotas / estudios / emisiones / flota_anual
 -- Añadido 16/11/2026. Coexiste con `carpetas` (legacy) hasta que termine la migración.
