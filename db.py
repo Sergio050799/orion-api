@@ -687,10 +687,109 @@ def migrate_db():
             if deleted > 0:
                 print(f"[db] Eliminados {deleted} registros corruptos de mmt_stats")
 
+        # ── Tarifa del motor de primas (primas_base + primas_suplementos) ────
+        _migrar_tarifa(conn)
+
         conn.commit()
         print("[db] Migración completada")
     finally:
         conn.close()
+
+
+
+# ─── TARIFA (motor de primas): única fuente de verdad, editable desde orion-admin ─────────────
+# Orion NO lleva ninguna prima en el código: todo se lee de primas_base + primas_suplementos.
+# Aquí solo están los valores de PARTIDA para una BD que aún no los tiene; se insertan con
+# INSERT OR IGNORE, así que lo que se haya editado desde el Admin nunca se pisa.
+
+# (categoria, tipo_vehiculo, tipo_key, cobertura, cob_key, ambito, prima)
+def _tarifa_base_seed():
+    out = []
+    c1 = [  # tipo, clave, terceros, terceros+lunas, ampliado, todo riesgo
+        ('Turismo',                        'turismo',              395, 465, 650, 850),
+        ('Furgoneta derivada turismo',     'derivado_turismo',     395, 465, 650, 950),
+        ('Derivado de todoterreno',        'derivado_todoterreno', 550, 620, 750, 1150),
+        ('Furgoneta',                      'furgoneta',            500, 570, 650, 1050),
+        ('Furgón grande particular',       'furgon',               640, 740, 950, 1350),
+        ('Furgón grande servicio público', 'furgon@sp',            640, 740, 950, 1350),
+    ]
+    for tipo, key, t, tl, ta, tr in c1:
+        out += [('1', tipo, key, 'Terceros sin lunas', 'terceros', 'unico', t),
+                ('1', tipo, key, 'Terceros con lunas', 'terceros_con_luna', 'unico', tl),
+                ('1', tipo, key, 'Terceros ampliado', 'terceros_ampliado', 'unico', ta),
+                ('1', tipo, key, 'Todo riesgo con franquicia', 'todo_riesgo', 'unico', tr)]
+    c2 = [  # cobertura, clave, nacional [tractora, remolque, rígido], internacional [...]
+        ('Terceros sin lunas',            'terceros',          [820, 270, 800],    [965, 300, 945]),
+        ('Terceros con lunas',            'terceros_con_luna', [970, None, 950],   [1115, None, 1095]),
+        ('Terceros ampliado',             'terceros_ampliado', [1500, 1100, 1400], [1645, 1200, 1545]),
+        ('Daños propios franquicia 1800', 'todo_riesgo',       [2355, 1870, 2305], [2500, 1950, 2450]),
+    ]
+    t2 = [('Cabeza tractora', 'cabeza_tractora'), ('Remolque', 'semirremolque'), ('Camión rígido', 'camion_rigido')]
+    for cob, ck, nac, inter in c2:
+        for i, (tipo, key) in enumerate(t2):
+            out.append(('2', tipo, key, cob, ck, 'nacional', nac[i]))
+            out.append(('2', tipo, key, cob, ck, 'internacional', inter[i]))
+    for tipo, key in [('Industrial matriculado', 'industrial_matriculado'), ('Industrial no matriculado', 'industrial_no_matriculado')]:
+        for amb in ('nacional', 'internacional'):
+            out.append(('2', tipo, key, 'Terceros sin lunas', 'terceros', amb, 190))
+    out += [('3', 'Moto', 'moto', 'Terceros sin lunas', 'terceros', 'unico', 336.08),
+            ('3', 'Moto', 'moto', 'Terceros ampliado con franquicia', 'todo_riesgo', 'unico', 426.89)]
+    return out
+
+# (categoria, tipo_suplemento, modalidad, valor, es_porcentaje, clave, descripcion)   · categoria 'T' = todas
+TARIFA_SUPLEMENTOS_SEED = [
+    ('1', 'asistencia', 'oro',            50, 0, 'asistencia_oro',              'Asistencia en viaje Oro'),
+    ('1', 'asistencia', 'oro_plus',       60, 0, 'asistencia_oro_plus',         'Asistencia en viaje Oro Plus'),
+    ('1', 'asistencia', 'platino',        70, 0, 'asistencia_platino',          'Asistencia en viaje Platino'),
+    ('1', 'asistencia_sp', 'oro',         50, 0, 'asistencia_servicio_pub_oro', 'Asistencia Oro · furgoneta en servicio público'),
+    ('1', 'asistencia_sp', 'oro_plus',   105, 0, 'asistencia_servicio_pub_op',  'Asistencia Oro Plus · furgoneta en servicio público'),
+    ('1', 'asistencia_sp', 'platino',    160, 0, 'asistencia_servicio_pub',     'Asistencia Platino · furgoneta en servicio público'),
+    ('1', 'animales', '',                 25, 0, 'animales',                    'Colisión con animales'),
+    ('1', 'reposo', '',                   40, 0, 'reposo_cat1',                 'RC voluntaria en reposo'),
+    ('1', 'franquicia_ref', '',          300, 0, 'tr_fref_cat1',                'Franquicia de referencia del precio de Todo riesgo'),
+    ('2', 'asistencia', 'nacional',      221, 0, 'asistencia_nacional',         'Asistencia en viaje · ámbito nacional'),
+    ('2', 'asistencia', 'internacional', 327, 0, 'asistencia_internacional',    'Asistencia en viaje · ámbito internacional'),
+    ('2', 'isotermo', '',                 30, 1, 'isotermo_pct',                'Isotermo (camión rígido y semirremolque): % sobre la prima base'),
+    ('2', 'reposo', '',                   80, 0, 'reposo_cat2',                 'RC voluntaria en reposo'),
+    ('2', 'franquicia_ref', '',         1800, 0, 'tr_fref_cat2',                'Franquicia de referencia del precio de Daños propios'),
+    ('3', 'asistencia', 'oro',            60, 0, 'asistencia_moto_oro',         'Asistencia en viaje Oro (moto)'),
+    ('3', 'reposo', '',                   25, 0, 'reposo_moto',                 'RC voluntaria en reposo'),
+    ('3', 'franquicia_ref', '',          500, 0, 'tr_fref_moto',                'Franquicia de referencia del precio con franquicia'),
+    ('T', 'perdida_total', '',            12, 1, 'perdida_total_pct',           'Pérdida total: % sobre la prima base (ampliado y todo riesgo)'),
+    ('T', 'curva_franquicia', '',       0.35, 0, 'tr_alpha',                    'Curva de Todo riesgo según franquicia (exponente): cuánto baja el precio al subir la franquicia'),
+    ('T', 'ajuste_global', '',             0, 1, 'ajuste_global_pct',           'Ajuste global: % que se aplica a todas las primas calculadas (negativo = descuento)'),
+]
+
+
+def _migrar_tarifa(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS primas_base (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, categoria TEXT NOT NULL, tipo_vehiculo TEXT NOT NULL, cobertura TEXT NOT NULL,
+        ambito TEXT NOT NULL DEFAULT 'unico', prima REAL NOT NULL, aplica INTEGER NOT NULL DEFAULT 1, notas TEXT NOT NULL DEFAULT '',
+        actualizado_en TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE(categoria, tipo_vehiculo, cobertura, ambito))""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS primas_suplementos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, categoria TEXT NOT NULL, tipo_suplemento TEXT NOT NULL, modalidad TEXT NOT NULL DEFAULT '',
+        valor REAL NOT NULL, es_porcentaje INTEGER NOT NULL DEFAULT 0, actualizado_en TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(categoria, tipo_suplemento, modalidad))""")
+    cols = lambda t: {r[1] for r in conn.execute(f"PRAGMA table_info({t})").fetchall()}
+    for col in ('tipo_key', 'cob_key'):
+        if col not in cols('primas_base'):
+            conn.execute(f"ALTER TABLE primas_base ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
+    for col in ('clave', 'descripcion'):
+        if col not in cols('primas_suplementos'):
+            conn.execute(f"ALTER TABLE primas_suplementos ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
+    # Nombres de la primera carga (23/11) → nombres definitivos, iguales en las tres categorías
+    conn.execute("UPDATE OR IGNORE primas_base SET cobertura='Terceros sin lunas' WHERE categoria='1' AND cobertura='RC'")
+    conn.execute("UPDATE OR IGNORE primas_base SET cobertura='Terceros con lunas' WHERE categoria='1' AND cobertura='RC + lunas'")
+    for cat, tipo, tkey, cob, ckey, amb, prima in _tarifa_base_seed():
+        conn.execute("""INSERT OR IGNORE INTO primas_base(categoria,tipo_vehiculo,cobertura,ambito,prima,aplica)
+                        VALUES(?,?,?,?,?,?)""", (cat, tipo, cob, amb, prima or 0, 0 if prima is None else 1))
+        conn.execute("""UPDATE primas_base SET tipo_key=?, cob_key=? WHERE categoria=? AND tipo_vehiculo=? AND cobertura=? AND ambito=?
+                        AND (tipo_key<>? OR cob_key<>?)""", (tkey, ckey, cat, tipo, cob, amb, tkey, ckey))
+    for cat, tsup, mod, valor, pct, clave, desc in TARIFA_SUPLEMENTOS_SEED:
+        conn.execute("""INSERT OR IGNORE INTO primas_suplementos(categoria,tipo_suplemento,modalidad,valor,es_porcentaje)
+                        VALUES(?,?,?,?,?)""", (cat, tsup, mod, valor, pct))
+        conn.execute("""UPDATE primas_suplementos SET clave=?, descripcion=? WHERE categoria=? AND tipo_suplemento=? AND modalidad=?
+                        AND (clave<>? OR descripcion<>?)""", (clave, desc, cat, tsup, mod, clave, desc))
 
 
 def init_db():

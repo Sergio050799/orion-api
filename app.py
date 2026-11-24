@@ -178,6 +178,27 @@ def post_carpetas():
             cid = str(c.get('id') or '').strip()
             if not cid:
                 return jsonify({'ok': False, 'error': 'Falta id de la carpeta'}), 400
+            # GUARDADO PARCIAL (fix 23/11): la pantalla Flotas v7 envía una carpeta mínima (nombre, CIF,
+            # estado, corredor, vencimiento…), sin `historico`. Antes eso REEMPLAZABA el JSON entero y se
+            # perdían histórico, tarifa, comisiones, descuentos y casi toda la cabecera. Una carpeta completa
+            # (la del Estudio) siempre trae `historico`; si no viene, se funde con lo que ya hay en BD.
+            if 'historico' not in c:
+                prev = conn.execute("SELECT data FROM carpetas WHERE id=?", [cid]).fetchone()
+                if prev and prev['data']:
+                    try:
+                        old_full = json.loads(prev['data'])
+                        if isinstance(old_full, dict):
+                            merged = dict(old_full)
+                            new_header = c.get('header')
+                            merged.update(c)
+                            if isinstance(old_full.get('header'), dict) and isinstance(new_header, dict):
+                                merged['header'] = {**old_full['header'], **new_header}
+                            c = merged
+                    except Exception:
+                        pass
+            # La ficha de Flotas marca `_sin_corredor` cuando el usuario deja la flota SIN corredor a propósito
+            # (sin esa marca, un corredor vacío se interpreta como «no viene» y se conserva el de la BD).
+            sin_corredor = bool(c.pop('_sin_corredor', False)) and not c.get('corredor_id')
             nombre, estado, cif, tomador, actividad, corredor_id, creado_por = _extract_carpeta_meta(c)
             # MERGE-PRESERVE: si el cliente envía la carpeta SIN los campos pesados
             # (trabajo, automaticoVehicles, oferta, original, sincoResultados,
@@ -206,7 +227,7 @@ def post_carpetas():
                 if not existe_cor:
                     # cliente envió ID inexistente → preservar lo que hay en BD (que está validado)
                     corredor_id = existing['corredor_id'] if existing else None
-            elif existing and existing['corredor_id']:
+            elif existing and existing['corredor_id'] and not sin_corredor:
                 # cliente envió null, preservar BD
                 corredor_id = existing['corredor_id']
             # También limpiar corredor_id dentro del JSON data para que la próxima vez
@@ -1942,6 +1963,14 @@ def get_carpetas_summary():
                 'num_vehiculos': sum(1 for v in vehs if isinstance(v, dict) and (v.get('matricula') or v.get('Matrícula'))),
                 'prima_total': round(total_prima, 2),
                 'actualizada': r['updated_at'] or '',
+                # Datos de la ficha de flota (pantalla Flotas): se leen y se guardan tal cual
+                'observaciones': d.get('observaciones') or '',
+                'comercial_id': d.get('comercial_id') or None,
+                'tomador': r['tomador'] or header.get('tomador','') or '',
+                'efecto': iso(header.get('efecto','')),
+                'cia_actual': header.get('ciaActual','') or '',
+                'poliza_actual': header.get('polizaActual','') or '',
+                'periodicidad': header.get('periodicidad','') or '',
             })
         return jsonify(out)
     finally:
@@ -2080,6 +2109,173 @@ def get_flotas_v5_kpis():
             'total_corredores': total_corredores,
             'total_comerciales': total_comerciales,
             'ratio_contratacion': ratio,
+        })
+    finally:
+        conn.close()
+
+
+# ─── MOTOR DE PRIMAS NUEVO (20 nov 2026) ─────────────────────────────────────
+# PRIMA_TOTAL = PRIMA_BASE + SUPLEMENTOS
+# Lee de primas_base y primas_suplementos (fuente única de verdad, editable desde Admin)
+
+@app.route('/primas/tabla', methods=['GET'])
+@require_key
+def get_primas_tabla():
+    """Devuelve matriz completa primas_base + suplementos para la UI del Admin."""
+    conn = get_conn()
+    try:
+        base = conn.execute("""SELECT id,categoria,tipo_vehiculo,tipo_key,cobertura,cob_key,ambito,prima,aplica,notas,actualizado_en
+                               FROM primas_base ORDER BY categoria, id""").fetchall()
+        sup  = conn.execute("""SELECT id,categoria,tipo_suplemento,modalidad,valor,es_porcentaje,clave,descripcion,actualizado_en
+                               FROM primas_suplementos ORDER BY categoria, id""").fetchall()
+        return jsonify({
+            'base': [dict(r) for r in base],
+            'suplementos': [dict(r) for r in sup],
+        })
+    finally:
+        conn.close()
+
+
+@app.route('/primas/base/<int:pid>', methods=['PUT'])
+@require_key
+def update_prima_base(pid):
+    """Actualiza una fila de primas_base (desde Admin)."""
+    body = request.get_json(silent=True) or {}
+    conn = get_conn()
+    try:
+        antes = conn.execute("SELECT categoria,tipo_vehiculo,cobertura,ambito,prima,aplica FROM primas_base WHERE id=?", (pid,)).fetchone()
+        if not antes:
+            return jsonify({'ok': False, 'error': 'Prima no encontrada'}), 404
+        prima, aplica = float(body.get('prima', 0)), int(body.get('aplica', 1))
+        conn.execute("""UPDATE primas_base SET prima=?, aplica=?, notas=?, actualizado_en=datetime('now')
+                        WHERE id=?""",
+                     (prima, aplica, body.get('notas', ''), pid))
+        # Auditoría: quién cambió qué prima, de cuánto a cuánto
+        conn.execute("INSERT INTO audit_log (usuario, accion, detalle, ip, ts) VALUES (?, ?, ?, ?, ?)",
+                     [str(body.get('usuario') or 'admin'), 'tarifa_prima',
+                      f"{antes['tipo_vehiculo']} · {antes['cobertura']} · {antes['ambito']}: "
+                      f"{antes['prima'] if antes['aplica'] else 'no aplica'} → {prima if aplica else 'no aplica'}",
+                      request.remote_addr or '', now_iso()])
+        conn.commit()
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+
+@app.route('/primas/suplemento/<int:sid>', methods=['PUT'])
+@require_key
+def update_prima_suplemento(sid):
+    """Actualiza un suplemento (asistencia/animales/isotermo)."""
+    body = request.get_json(silent=True) or {}
+    conn = get_conn()
+    try:
+        antes = conn.execute("SELECT categoria,tipo_suplemento,modalidad,valor,descripcion FROM primas_suplementos WHERE id=?", (sid,)).fetchone()
+        if not antes:
+            return jsonify({'ok': False, 'error': 'Suplemento no encontrado'}), 404
+        valor = float(body.get('valor', 0))
+        conn.execute("""UPDATE primas_suplementos SET valor=?, es_porcentaje=?, actualizado_en=datetime('now')
+                        WHERE id=?""",
+                     (valor, int(body.get('es_porcentaje', 0)), sid))
+        conn.execute("INSERT INTO audit_log (usuario, accion, detalle, ip, ts) VALUES (?, ?, ?, ?, ?)",
+                     [str(body.get('usuario') or 'admin'), 'tarifa_suplemento',
+                      f"{antes['descripcion'] or antes['tipo_suplemento']} ({antes['categoria']}): {antes['valor']} → {valor}",
+                      request.remote_addr or '', now_iso()])
+        conn.commit()
+        return jsonify({'ok': True})
+    finally:
+        conn.close()
+
+
+@app.route('/primas/calcular', methods=['POST'])
+@require_key
+def calcular_prima():
+    """Calcula la prima de UN vehículo según categoría + tipo + cobertura + ámbito + flags.
+
+    Body esperado:
+    {
+      "categoria": "1" | "2" | "3",
+      "tipo_vehiculo": "Cabeza tractora" | "Furgoneta derivada turismo" | ...,
+      "cobertura": "Terceros sin lunas" | "RC" | "RC + lunas" | ...,
+      "ambito": "nacional" | "internacional" | "unico",  (opcional, default según cat)
+      "asistencia": "" | "oro" | "oro_plus" | "platino" | "nacional" | "internacional",
+      "animales": true | false,
+      "isotermo": true | false
+    }
+
+    Respuesta:
+    {
+      "prima_base": N,
+      "suplemento_asistencia": N,
+      "suplemento_animales": N,
+      "suplemento_isotermo": N,
+      "prima_total": N,
+      "desglose": "texto legible"
+    }
+    """
+    b = request.get_json(silent=True) or {}
+    categoria = str(b.get('categoria', '')).strip()
+    tipo = str(b.get('tipo_vehiculo', '')).strip()
+    cobertura = str(b.get('cobertura', '')).strip()
+    ambito = str(b.get('ambito', 'unico')).strip().lower() or 'unico'
+    asistencia = str(b.get('asistencia', '')).strip().lower()
+    animales = bool(b.get('animales', False))
+    isotermo = bool(b.get('isotermo', False))
+
+    conn = get_conn()
+    try:
+        # Si cat 1, el ámbito es 'unico'
+        if categoria == '1': ambito = 'unico'
+
+        # 1) Prima base
+        row = conn.execute("""SELECT prima, aplica FROM primas_base
+                              WHERE categoria=? AND tipo_vehiculo=? AND cobertura=? AND ambito=?""",
+                           (categoria, tipo, cobertura, ambito)).fetchone()
+        if not row:
+            return jsonify({'error': f'Sin prima para cat={categoria} tipo={tipo} cob={cobertura} amb={ambito}',
+                            'prima_total': 0}), 404
+        if not row['aplica']:
+            return jsonify({'error': f'No aplica ({tipo} + {cobertura})', 'prima_total': 0}), 400
+        prima_base = float(row['prima'])
+
+        # 2) Suplemento isotermo (solo 2ª cat): +X% sobre base
+        sup_isotermo = 0.0
+        if isotermo and categoria == '2':
+            s = conn.execute("""SELECT valor, es_porcentaje FROM primas_suplementos
+                                WHERE categoria='2' AND tipo_suplemento='isotermo'""").fetchone()
+            if s:
+                if s['es_porcentaje']:
+                    sup_isotermo = round(prima_base * (float(s['valor'])/100), 2)
+                else:
+                    sup_isotermo = float(s['valor'])
+
+        # 3) Suplemento asistencia
+        sup_asistencia = 0.0
+        if asistencia:
+            s = conn.execute("""SELECT valor FROM primas_suplementos
+                                WHERE categoria=? AND tipo_suplemento='asistencia' AND modalidad=?""",
+                             (categoria, asistencia)).fetchone()
+            if s: sup_asistencia = float(s['valor'])
+
+        # 4) Suplemento animales (solo 1ª cat)
+        sup_animales = 0.0
+        if animales and categoria == '1':
+            s = conn.execute("""SELECT valor FROM primas_suplementos
+                                WHERE categoria='1' AND tipo_suplemento='animales'""").fetchone()
+            if s: sup_animales = float(s['valor'])
+
+        total = round(prima_base + sup_isotermo + sup_asistencia + sup_animales, 2)
+        desglose = f'{prima_base}€ base'
+        if sup_isotermo: desglose += f' + {sup_isotermo}€ isotermo'
+        if sup_asistencia: desglose += f' + {sup_asistencia}€ asist({asistencia})'
+        if sup_animales: desglose += f' + {sup_animales}€ animales'
+
+        return jsonify({
+            'prima_base': prima_base,
+            'suplemento_isotermo': sup_isotermo,
+            'suplemento_asistencia': sup_asistencia,
+            'suplemento_animales': sup_animales,
+            'prima_total': total,
+            'desglose': desglose,
         })
     finally:
         conn.close()
