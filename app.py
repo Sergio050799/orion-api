@@ -1717,10 +1717,9 @@ def facturacion_resumen():
                 c = json.loads(r['data'] or '{}')
             except Exception:
                 c = {}
-            cor = c.get('corredor') or {}
-            flotas[r['carpeta_id']] = {'config': {'inicioCiclo': c.get('inicioCiclo', ''), 'periodicidad': c.get('periodicidad', ''),
-                                                 'comision': cor.get('comision', 0), 'completa': bool(c.get('inicioCiclo') and c.get('periodicidad') and cor.get('cif') and cor.get('domicilio'))},
-                                       'documentos': []}
+            # La configuración entera (es pequeña): la portada decide con ella qué le falta a cada flota,
+            # con las mismas condiciones que la ficha.
+            flotas[r['carpeta_id']] = {'config': c if isinstance(c, dict) and c.get('corredor') else None, 'documentos': []}
         for r in conn.execute("SELECT id, carpeta_id, serie, vencimiento, numero, recibos, neta, impuesto, importe, comision, liquido, texto_periodo, creado_en, creado_por FROM facturas WHERE estado='emitida' ORDER BY creado_en DESC").fetchall():
             f = flotas.setdefault(r['carpeta_id'], {'config': None, 'documentos': []})
             f['documentos'].append({k: r[k] for k in r.keys() if k != 'carpeta_id'})
